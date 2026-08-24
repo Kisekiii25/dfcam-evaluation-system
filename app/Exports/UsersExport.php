@@ -2,26 +2,27 @@
 
 namespace App\Exports;
 
-use App\Models\User;
 use App\Models\EvaluationSetting;
+use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Concerns\WithDrawings;
 use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\BaseDrawing;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\BaseDrawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
-class UsersExport implements FromCollection, WithHeadings, WithMapping, WithCustomStartCell, WithDrawings, WithEvents, ShouldAutoSize
+class UsersExport implements FromCollection, ShouldAutoSize, WithCustomStartCell, WithDrawings, WithEvents, WithHeadings, WithMapping
 {
     protected string $academicYear;
+
     protected string $semester;
 
     public function __construct(?string $academicYear = null, ?string $semester = null)
@@ -36,7 +37,7 @@ class UsersExport implements FromCollection, WithHeadings, WithMapping, WithCust
         $semesterVariants = array_unique([
             $this->semester,
             str_contains($this->semester, '1') ? '1' : '2',
-            str_contains($this->semester, '1') ? '1st Semester' : '2nd Semester'
+            str_contains($this->semester, '1') ? '1st Semester' : '2nd Semester',
         ]);
 
         return User::query()
@@ -111,7 +112,7 @@ class UsersExport implements FromCollection, WithHeadings, WithMapping, WithCust
     // Position logo on the left side (Column B area)
     public function drawings(): BaseDrawing|array
     {
-        $drawing = new Drawing();
+        $drawing = new Drawing;
         $drawing->setName('School Logo');
         $drawing->setDescription('DFCAMCLP Logo');
 

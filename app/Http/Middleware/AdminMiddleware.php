@@ -17,7 +17,7 @@ class AdminMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         // 1. Unauthenticated users must be sent to login first
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect()->guest(route('login'));
         }
 

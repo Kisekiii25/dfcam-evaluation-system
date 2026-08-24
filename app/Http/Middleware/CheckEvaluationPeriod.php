@@ -33,7 +33,7 @@ class CheckEvaluationPeriod
             ?? EvaluationSetting::first();
 
         // 4. Validate whether evaluation period is active and within date window
-        if (!$settings || !$settings->isOpen()) {
+        if (! $settings || ! $settings->isOpen()) {
             return redirect()->route('evaluation.closed');
         }
 

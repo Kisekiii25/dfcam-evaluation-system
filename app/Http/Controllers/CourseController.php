@@ -28,7 +28,7 @@ class CourseController extends Controller
             ->get();
 
         return Inertia::render('Courses/Index', [
-            'courses'  => $courses,
+            'courses' => $courses,
             'sections' => $sections,
         ]);
     }

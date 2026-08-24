@@ -46,10 +46,10 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at'    => 'datetime',
-            'password'             => 'hashed',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
             'must_change_password' => 'boolean',
-            'section_id'           => 'integer',
+            'section_id' => 'integer',
         ];
     }
 
@@ -74,7 +74,7 @@ class User extends Authenticatable
      */
     public function assignedTeachers(?EvaluationSetting $setting = null): Builder
     {
-        if (!$this->section_id) {
+        if (! $this->section_id) {
             return Teacher::query()->whereRaw('1 = 0');
         }
 

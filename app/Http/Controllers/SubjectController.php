@@ -13,7 +13,7 @@ class SubjectController extends Controller
     public function index()
     {
         return Inertia::render('Subjects/Index', [
-            'subjects' => Subject::orderBy('code', 'asc')->get()
+            'subjects' => Subject::orderBy('code', 'asc')->get(),
         ]);
     }
 
@@ -22,7 +22,7 @@ class SubjectController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'code' => 'required|string|max:255|unique:subjects,code',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
         ]);
 
         Subject::create($validated);
@@ -33,7 +33,7 @@ class SubjectController extends Controller
     public function show(Subject $subject)
     {
         return Inertia::render('Subjects/Show', [
-            'subject' => $subject
+            'subject' => $subject,
         ]);
     }
 
@@ -53,7 +53,7 @@ class SubjectController extends Controller
                 'max:255',
                 Rule::unique('subjects')->ignore($subject->id),
             ],
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
         ]);
 
         $subject->update($validated);

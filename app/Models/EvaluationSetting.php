@@ -32,8 +32,8 @@ class EvaluationSetting extends Model
     {
         return [
             'start_date' => 'datetime:Y-m-d\TH:i',
-            'end_date'   => 'datetime:Y-m-d\TH:i',
-            'is_active'  => 'boolean',
+            'end_date' => 'datetime:Y-m-d\TH:i',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -42,7 +42,7 @@ class EvaluationSetting extends Model
      */
     public function isOpen(): bool
     {
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return false;
         }
 

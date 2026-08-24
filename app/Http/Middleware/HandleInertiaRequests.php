@@ -45,21 +45,21 @@ class HandleInertiaRequests extends Middleware
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
                 'user' => $user ? [
-                    'id'               => $user->id,
-                    'name'             => $user->name,
-                    'email'            => $user->email,
-                    'role'             => $user->role,
-                    'section_id'       => $user->section_id,
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'section_id' => $user->section_id,
                     'must_change_pass' => $user->must_change_pass ?? false,
-                    'section'          => $user->relationLoaded('section')
+                    'section' => $user->relationLoaded('section')
                         ? $user->section
                         : $user->section()->with('course')->first(),
                 ] : null,
             ],
             'flash' => [
-                'success'      => fn () => $request->session()->get('success'),
-                'error'        => fn () => $request->session()->get('error'),
-                'info'         => fn () => $request->session()->get('info'),
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                'info' => fn () => $request->session()->get('info'),
                 'trashed_user' => fn () => $request->session()->get('trashed_user'),
             ],
         ]);

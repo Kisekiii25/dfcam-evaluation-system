@@ -36,14 +36,14 @@ class EvaluationSettingController extends Controller
     {
         $validated = $request->validate([
             'academic_year' => ['required', 'string', 'max:20'],
-            'semester'      => ['required', 'string', 'max:50'],
-            'start_date'    => ['required', 'date'],
-            'end_date'      => ['required', 'date', 'after_or_equal:start_date'],
-            'is_active'     => ['sometimes', 'boolean'],
+            'semester' => ['required', 'string', 'max:50'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'is_active' => ['sometimes', 'boolean'],
         ]);
 
         // Safely update the single setting record or create it if missing
-        $setting = EvaluationSetting::first() ?? new EvaluationSetting();
+        $setting = EvaluationSetting::first() ?? new EvaluationSetting;
         $setting->fill($validated);
         $setting->save();
 

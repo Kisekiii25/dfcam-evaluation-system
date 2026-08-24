@@ -30,7 +30,7 @@ class Section extends Model
     protected function casts(): array
     {
         return [
-            'course_id'  => 'integer',
+            'course_id' => 'integer',
             'year_level' => 'integer',
         ];
     }

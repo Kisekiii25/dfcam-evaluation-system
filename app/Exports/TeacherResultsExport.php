@@ -3,30 +3,33 @@
 namespace App\Exports;
 
 use App\Models\Category;
-use App\Models\Question;
-use App\Models\Teacher;
 use App\Models\EvaluationResult;
 use App\Models\EvaluationSetting;
+use App\Models\Question;
+use App\Models\Teacher;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Concerns\WithDrawings;
 use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
-use PhpOffice\PhpSpreadsheet\Worksheet\BaseDrawing;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\BaseDrawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
-class TeacherResultsExport implements FromCollection, WithHeadings, WithMapping, WithCustomStartCell, WithDrawings, WithEvents, ShouldAutoSize
+class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustomStartCell, WithDrawings, WithEvents, WithHeadings, WithMapping
 {
     protected string $academicYear;
+
     protected string $semester;
+
     protected Collection $ratingCategories;
+
     protected Collection $commentQuestions;
 
     public function __construct(?string $academicYear = null, ?string $semester = null)
@@ -98,7 +101,7 @@ class TeacherResultsExport implements FromCollection, WithHeadings, WithMapping,
                 ->where('questions.type', 'rating')
                 ->avg('evaluation_results.answer');
 
-            $row[] = $catAvg ? number_format($catAvg, 2) . ' / 5' : 'N/A';
+            $row[] = $catAvg ? number_format($catAvg, 2).' / 5' : 'N/A';
         }
 
         // 2. Overall Average Rating + Guidance Descriptive Text
@@ -109,7 +112,7 @@ class TeacherResultsExport implements FromCollection, WithHeadings, WithMapping,
             ->where('questions.type', 'rating')
             ->avg('evaluation_results.answer');
 
-        $ratingInfo = $this->getRatingBadge($overallAvg ? (float)$overallAvg : null);
+        $ratingInfo = $this->getRatingBadge($overallAvg ? (float) $overallAvg : null);
         $row[] = $ratingInfo['label'];
 
         // 3. Comment Questions
@@ -121,10 +124,10 @@ class TeacherResultsExport implements FromCollection, WithHeadings, WithMapping,
                 ->whereNotNull('answer')
                 ->where('answer', '!=', '')
                 ->pluck('answer')
-                ->map(fn($item) => trim($item))
+                ->map(fn ($item) => trim($item))
                 ->implode("\n• ");
 
-            $row[] = $answers ? "• " . $answers : 'No comments recorded';
+            $row[] = $answers ? '• '.$answers : 'No comments recorded';
         }
 
         return $row;
@@ -136,47 +139,47 @@ class TeacherResultsExport implements FromCollection, WithHeadings, WithMapping,
         if ($score === null) {
             return [
                 'label' => 'N/A',
-                'bg'    => 'F2F2F2',
-                'font'  => '595959'
+                'bg' => 'F2F2F2',
+                'font' => '595959',
             ];
         }
 
         if ($score >= 4.75) {
             return [
-                'label' => number_format($score, 2) . ' - Outstanding',
-                'bg'    => 'C6EFCE', // Soft Dark Green Fill
-                'font'  => '006100'  // Dark Green Text
+                'label' => number_format($score, 2).' - Outstanding',
+                'bg' => 'C6EFCE', // Soft Dark Green Fill
+                'font' => '006100',  // Dark Green Text
             ];
         } elseif ($score >= 3.50) {
             return [
-                'label' => number_format($score, 2) . ' - Very Satisfied',
-                'bg'    => 'E2EFDA', // Soft Light Green Fill
-                'font'  => '375623'  // Forest Green Text
+                'label' => number_format($score, 2).' - Very Satisfied',
+                'bg' => 'E2EFDA', // Soft Light Green Fill
+                'font' => '375623',  // Forest Green Text
             ];
         } elseif ($score >= 2.50) {
             return [
-                'label' => number_format($score, 2) . ' - Moderately Satisfied',
-                'bg'    => 'FFEB9C', // Soft Yellow Fill
-                'font'  => '9C6500'  // Dark Gold Text
+                'label' => number_format($score, 2).' - Moderately Satisfied',
+                'bg' => 'FFEB9C', // Soft Yellow Fill
+                'font' => '9C6500',  // Dark Gold Text
             ];
         } elseif ($score >= 1.50) {
             return [
-                'label' => number_format($score, 2) . ' - Slightly Satisfied',
-                'bg'    => 'FCE4D6', // Soft Orange Fill
-                'font'  => 'C65911'  // Dark Orange Text
+                'label' => number_format($score, 2).' - Slightly Satisfied',
+                'bg' => 'FCE4D6', // Soft Orange Fill
+                'font' => 'C65911',  // Dark Orange Text
             ];
         } else {
             return [
-                'label' => number_format($score, 2) . ' - Not Satisfied',
-                'bg'    => 'FFC7CE', // Soft Red Fill
-                'font'  => '9C0006'  // Dark Red Text
+                'label' => number_format($score, 2).' - Not Satisfied',
+                'bg' => 'FFC7CE', // Soft Red Fill
+                'font' => '9C0006',  // Dark Red Text
             ];
         }
     }
 
     public function drawings(): BaseDrawing|array
     {
-        $drawing = new Drawing();
+        $drawing = new Drawing;
         $drawing->setName('School Logo');
         $drawing->setDescription('DFCAMCLP Logo');
 
@@ -261,7 +264,7 @@ class TeacherResultsExport implements FromCollection, WithHeadings, WithMapping,
                             ->where('questions.type', 'rating')
                             ->avg('evaluation_results.answer');
 
-                        $badge = $this->getRatingBadge($overallAvg ? (float)$overallAvg : null);
+                        $badge = $this->getRatingBadge($overallAvg ? (float) $overallAvg : null);
                         $cellCoordinate = "{$overallColLetter}{$currentRow}";
 
                         // Fill Cell Background Color

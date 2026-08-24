@@ -26,9 +26,9 @@ class QuestionController extends Controller
         });
 
         return Inertia::render('Questions/Index', [
-            'questions'  => Question::with('category')->orderBy('order', 'asc')->get(),
+            'questions' => Question::with('category')->orderBy('order', 'asc')->get(),
             'categories' => Category::orderBy('order', 'asc')->get(),
-            'settings'   => $settings,
+            'settings' => $settings,
         ]);
     }
 
@@ -43,16 +43,16 @@ class QuestionController extends Controller
     {
 
         Cache::forget('active_evaluation_setting');
-        
+
         $validated = $request->validate([
             'academic_year' => 'required|string|max:50',
-            'semester'      => 'required|string|max:50',
-            'start_date'    => 'required|date',
-            'end_date'      => 'required|date|after:start_date',
+            'semester' => 'required|string|max:50',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after:start_date',
         ]);
 
         $validated['start_date'] = Carbon::parse($validated['start_date'])->startOfDay();
-        $validated['end_date']   = Carbon::parse($validated['end_date'])->endOfDay();
+        $validated['end_date'] = Carbon::parse($validated['end_date'])->endOfDay();
 
         EvaluationSetting::updateOrCreate(
             ['id' => 1],
@@ -90,8 +90,8 @@ class QuestionController extends Controller
     {
         $validated = $request->validate([
             'question_text' => 'required|string',
-            'category_id'   => 'required|exists:categories,id',
-            'type'          => 'required|in:rating,comment',
+            'category_id' => 'required|exists:categories,id',
+            'type' => 'required|in:rating,comment',
         ]);
 
         // Automatically assign the next order position across questions
@@ -113,7 +113,7 @@ class QuestionController extends Controller
     public function reorder(Request $request)
     {
         $validated = $request->validate([
-            'ids'   => 'required|array',
+            'ids' => 'required|array',
             'ids.*' => 'exists:questions,id',
         ]);
 
@@ -132,7 +132,7 @@ class QuestionController extends Controller
     public function reorderCategories(Request $request)
     {
         $validated = $request->validate([
-            'ids'   => 'required|array',
+            'ids' => 'required|array',
             'ids.*' => 'exists:categories,id',
         ]);
 
@@ -171,8 +171,8 @@ class QuestionController extends Controller
     {
         $validated = $request->validate([
             'question_text' => 'required|string',
-            'category_id'   => 'required|exists:categories,id',
-            'type'          => 'required|in:rating,comment',
+            'category_id' => 'required|exists:categories,id',
+            'type' => 'required|in:rating,comment',
         ]);
 
         $question->update($validated);
@@ -211,7 +211,7 @@ class QuestionController extends Controller
     public function bulkDestroy(Request $request)
     {
         $validated = $request->validate([
-            'ids'   => 'required|array',
+            'ids' => 'required|array',
             'ids.*' => 'exists:questions,id',
         ]);
 

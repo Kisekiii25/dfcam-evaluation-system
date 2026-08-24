@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\UsersExport;
+use App\Imports\UsersImport;
 use App\Models\EvaluationSetting;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -10,8 +12,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use App\Imports\UsersImport;
-use App\Exports\UsersExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class UserController extends Controller
@@ -106,7 +106,8 @@ class UserController extends Controller
         // Cache Academic Years dropdown list
         $academicYears = Cache::remember('academic_years_list', 86400, function () {
             $years = EvaluationSetting::distinct()->pluck('academic_year')->filter()->values()->toArray();
-            return !empty($years) ? $years : ['2025-2026', '2024-2025', '2023-2024', '2022-2023'];
+
+            return ! empty($years) ? $years : ['2025-2026', '2024-2025', '2023-2024', '2022-2023'];
         });
 
         return Inertia::render('Users/Index', [

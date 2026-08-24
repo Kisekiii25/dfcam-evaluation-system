@@ -17,10 +17,10 @@ class EnsurePasswordIsChanged
 
         if ($user && $user->must_change_password) {
             // Allow access strictly to password update routes and logout
-            if (!$request->routeIs('password.force-change', 'password.force-change.update', 'logout')) {
+            if (! $request->routeIs('password.force-change', 'password.force-change.update', 'logout')) {
                 return redirect()->route('password.force-change');
             }
-        } elseif ($user && !$user->must_change_password && $request->routeIs('password.force-change')) {
+        } elseif ($user && ! $user->must_change_password && $request->routeIs('password.force-change')) {
             // Prevent users who have already updated their password from staying on this screen
             $redirectRoute = $user->role === 'admin' ? 'admin.dashboard' : 'dashboard';
 

@@ -35,8 +35,8 @@ class EvaluationResult extends Model
     protected function casts(): array
     {
         return [
-            'user_id'     => 'integer',
-            'teacher_id'  => 'integer',
+            'user_id' => 'integer',
+            'teacher_id' => 'integer',
             'question_id' => 'integer',
         ];
     }

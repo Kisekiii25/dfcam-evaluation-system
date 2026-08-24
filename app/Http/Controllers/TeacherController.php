@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\TeacherResultsExport;
 use App\Models\Category;
 use App\Models\EvaluationResult;
 use App\Models\EvaluationSetting;
@@ -15,7 +16,6 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use App\Exports\TeacherResultsExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class TeacherController extends Controller
@@ -48,6 +48,7 @@ class TeacherController extends Controller
             ->get()
             ->map(function ($teacher) {
                 $teacher->rating = $teacher->computed_rating ? number_format($teacher->computed_rating, 2) : 'N/A';
+
                 return $teacher;
             });
 
@@ -138,20 +139,20 @@ class TeacherController extends Controller
 
         TeachingLoad::whereIn('id', $validated['ids'])->delete();
 
-        return back()->with('success', count($validated['ids']) . ' teaching loads deleted successfully.');
+        return back()->with('success', count($validated['ids']).' teaching loads deleted successfully.');
     }
 
     public function toggleStatus(Teacher $teacher)
     {
         $teacher->update([
-            'is_active' => !$teacher->is_active,
+            'is_active' => ! $teacher->is_active,
         ]);
 
         if ($teacher->is_active) {
-            return back()->with('success', "Teacher account has been activated.");
+            return back()->with('success', 'Teacher account has been activated.');
         }
 
-        return back()->with('info', "Teacher account has been deactivated.");
+        return back()->with('info', 'Teacher account has been deactivated.');
     }
 
     public function bulkToggleStatus(Request $request)
@@ -166,6 +167,7 @@ class TeacherController extends Controller
             ->update(['is_active' => $validated['is_active']]);
 
         $status = $validated['is_active'] ? 'activated' : 'deactivated';
+
         return back()->with('success', "Selected teacher account(s) have been {$status}.");
     }
 
@@ -181,7 +183,7 @@ class TeacherController extends Controller
             'employee_id' => [
                 'required',
                 'string',
-                Rule::unique('teachers')->ignore($teacher->id)
+                Rule::unique('teachers')->ignore($teacher->id),
             ],
         ]);
 
@@ -260,7 +262,7 @@ class TeacherController extends Controller
                 ];
             });
 
-            $catAvg = !empty($catScores) ? array_sum($catScores) / count($catScores) : null;
+            $catAvg = ! empty($catScores) ? array_sum($catScores) / count($catScores) : null;
 
             return [
                 'id' => $category->id,
@@ -311,18 +313,18 @@ class TeacherController extends Controller
 
         return Inertia::render('Users/StudentSections', [
             'students' => $students,
-            'sections' => $sections
+            'sections' => $sections,
         ]);
     }
 
     public function updateStudentSection(Request $request, User $student)
     {
         $validated = $request->validate([
-            'section_id' => 'nullable|exists:sections,id'
+            'section_id' => 'nullable|exists:sections,id',
         ]);
 
         $student->update([
-            'section_id' => $validated['section_id']
+            'section_id' => $validated['section_id'],
         ]);
 
         return back()->with('success', "Assigned {$student->name} to their section successfully.");
@@ -333,7 +335,7 @@ class TeacherController extends Controller
         $validated = $request->validate([
             'student_ids' => 'required|array',
             'student_ids.*' => 'exists:users,id',
-            'section_id' => 'nullable|exists:sections,id'
+            'section_id' => 'nullable|exists:sections,id',
         ]);
 
         User::whereIn('id', $validated['student_ids'])

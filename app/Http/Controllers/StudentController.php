@@ -31,7 +31,7 @@ class StudentController extends Controller
         $settings = $this->getActiveSettings();
 
         return Inertia::render('Student/Dashboard', [
-            'settings' => $settings
+            'settings' => $settings,
         ]);
     }
 
@@ -39,18 +39,18 @@ class StudentController extends Controller
     {
         $settings = $this->getActiveSettings();
 
-        if (!$settings) {
+        if (! $settings) {
             return Inertia::render('Student/SelectTeacher', [
                 'teachers' => [],
                 'settings' => null,
                 'evaluatedTeacherIds' => [],
-                'error' => 'No active evaluation period configured.'
+                'error' => 'No active evaluation period configured.',
             ]);
         }
 
         $user = Auth::user();
 
-        if (!$user->section_id) {
+        if (! $user->section_id) {
             $teachers = [];
         } else {
             $teachers = Teacher::where('is_active', true)
@@ -73,22 +73,22 @@ class StudentController extends Controller
             ->toArray();
 
         return Inertia::render('Student/SelectTeacher', [
-            'teachers'            => $teachers,
-            'settings'            => $settings,
-            'evaluatedTeacherIds' => $evaluatedTeacherIds
+            'teachers' => $teachers,
+            'settings' => $settings,
+            'evaluatedTeacherIds' => $evaluatedTeacherIds,
         ]);
     }
 
     public function showForm(Request $request, Teacher $teacher)
     {
-        if (!$teacher->is_active) {
+        if (! $teacher->is_active) {
             return redirect()->route('evaluation.select')
                 ->with('error', 'This instructor account is currently inactive.');
         }
 
         $settings = $this->getActiveSettings();
 
-        if (!$settings || !$settings->isOpen()) {
+        if (! $settings || ! $settings->isOpen()) {
             return redirect()->route('evaluation.select')
                 ->with('error', 'Evaluation portal is currently closed.');
         }
@@ -101,7 +101,7 @@ class StudentController extends Controller
             ->where('semester', $settings->semester)
             ->exists();
 
-        if (!$isValidLoad) {
+        if (! $isValidLoad) {
             return redirect()->route('evaluation.dashboard')
                 ->with('error', 'Access Denied: This instructor is not assigned to your section.');
         }
@@ -124,29 +124,29 @@ class StudentController extends Controller
 
         $userSection = $user->section;
         $selection = [
-            'course'  => $userSection?->course?->name ?? '',
-            'year'    => $userSection?->year_level ?? '',
+            'course' => $userSection?->course?->name ?? '',
+            'year' => $userSection?->year_level ?? '',
             'section' => $userSection?->name ?? '',
         ];
 
         return Inertia::render('Student/EvaluationForm', [
-            'teacher'    => $teacher,
+            'teacher' => $teacher,
             'categories' => $categories,
-            'settings'   => $settings,
-            'selection'  => $selection
+            'settings' => $settings,
+            'selection' => $selection,
         ]);
     }
 
     public function submit(Request $request, Teacher $teacher)
     {
-        if (!$teacher->is_active) {
+        if (! $teacher->is_active) {
             return redirect()->route('evaluation.select')
                 ->with('error', 'Evaluation submission rejected: Instructor account is inactive.');
         }
 
         $settings = $this->getActiveSettings();
 
-        if (!$settings || !$settings->isOpen()) {
+        if (! $settings || ! $settings->isOpen()) {
             return redirect()->route('evaluation.select')
                 ->with('error', 'Submission rejected: Evaluation period is not active.');
         }
@@ -155,7 +155,7 @@ class StudentController extends Controller
 
         // FIX: Allow both numeric ratings and string comments/text
         $validated = $request->validate([
-            'ratings'   => 'required|array',
+            'ratings' => 'required|array',
             'ratings.*' => 'required', // Removed strict 'numeric' requirement
         ]);
 
@@ -165,7 +165,7 @@ class StudentController extends Controller
             ->where('semester', $settings->semester)
             ->exists();
 
-        if (!$isValidLoad) {
+        if (! $isValidLoad) {
             return redirect()->back()
                 ->with('error', 'Security Alert: Unauthorized evaluation submission path.');
         }
@@ -192,17 +192,17 @@ class StudentController extends Controller
             }
 
             $insertData[] = [
-                'user_id'          => $user->id,
-                'teacher_id'       => $teacher->id,
-                'question_id'      => $questionId,
-                'answer'           => (string)$answer, // Safely cast to string
-                'selected_course'  => $userSection?->course?->name ?? '',
-                'selected_year'    => $userSection?->year_level ?? '',
+                'user_id' => $user->id,
+                'teacher_id' => $teacher->id,
+                'question_id' => $questionId,
+                'answer' => (string) $answer, // Safely cast to string
+                'selected_course' => $userSection?->course?->name ?? '',
+                'selected_year' => $userSection?->year_level ?? '',
                 'selected_section' => $userSection?->name ?? '',
-                'academic_year'    => $settings->academic_year,
-                'semester'         => $settings->semester,
-                'created_at'       => $now,
-                'updated_at'       => $now,
+                'academic_year' => $settings->academic_year,
+                'semester' => $settings->semester,
+                'created_at' => $now,
+                'updated_at' => $now,
             ];
         }
 

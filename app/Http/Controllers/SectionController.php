@@ -16,9 +16,9 @@ class SectionController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'course_id'  => ['required', 'exists:courses,id'],
+            'course_id' => ['required', 'exists:courses,id'],
             'year_level' => ['required', 'integer', 'min:1', 'max:5'],
-            'name'       => [
+            'name' => [
                 'required',
                 'string',
                 'max:50',
@@ -43,9 +43,9 @@ class SectionController extends Controller
     public function update(Request $request, Section $section): RedirectResponse
     {
         $validated = $request->validate([
-            'course_id'  => ['required', 'exists:courses,id'],
+            'course_id' => ['required', 'exists:courses,id'],
             'year_level' => ['required', 'integer', 'min:1', 'max:5'],
-            'name'       => [
+            'name' => [
                 'required',
                 'string',
                 'max:50',
@@ -71,6 +71,7 @@ class SectionController extends Controller
 
         try {
             $section->delete();
+
             return back()->with('success', "Section {$label} has been deleted.");
         } catch (QueryException $e) {
             return back()->with('error', "Cannot delete {$label} because it is assigned to existing students or class schedules.");

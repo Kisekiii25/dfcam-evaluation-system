@@ -2,8 +2,8 @@
 
 namespace App\Imports;
 
-use App\Models\User;
 use App\Models\Section;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -48,11 +48,11 @@ class UsersImport implements ToModel, WithHeadingRow
 
         // Create new user if they don't exist
         return new User([
-            'name'                 => $row['name'],
-            'email'                => $row['email'],
-            'role'                 => $row['role'] ?? 'student',
-            'section_id'           => $sectionId,
-            'password'             => Hash::make($row['password'] ?? 'password123'),
+            'name' => $row['name'],
+            'email' => $row['email'],
+            'role' => $row['role'] ?? 'student',
+            'section_id' => $sectionId,
+            'password' => Hash::make($row['password'] ?? 'password123'),
             'must_change_password' => true, // Flag new imports for mandatory password update
         ]);
     }

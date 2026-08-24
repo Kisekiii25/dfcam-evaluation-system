@@ -32,7 +32,7 @@ class Question extends Model
     {
         return [
             'category_id' => 'integer',
-            'order'       => 'integer',
+            'order' => 'integer',
         ];
     }
 

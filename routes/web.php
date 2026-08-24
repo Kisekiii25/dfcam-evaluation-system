@@ -106,7 +106,7 @@ Route::middleware(['auth', 'force_password_change', 'admin'])->group(function ()
     Route::post('/admin/settings/evaluation', [QuestionController::class, 'updateSettings'])->name('settings.evaluation.update');
 
     // Settings Sub-routes
-    require __DIR__ . '/settings.php';
+    require __DIR__.'/settings.php';
 });
 
 /*
@@ -129,4 +129,4 @@ Route::middleware(['auth', 'force_password_change'])->group(function () {
     });
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

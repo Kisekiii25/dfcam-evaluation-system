@@ -8,7 +8,6 @@ use App\Models\Section;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,10 +35,10 @@ class AdminDashboardController extends Controller
 
         // 4. Summary Stats
         $stats = [
-            'total_students'        => User::where('role', 'student')->count(),
-            'active_teachers'       => Teacher::where('is_active', true)->count(),
-            'deactivated_teachers'  => Teacher::where('is_active', false)->count(),
-            'total_sections'        => Section::count(),
+            'total_students' => User::where('role', 'student')->count(),
+            'active_teachers' => Teacher::where('is_active', true)->count(),
+            'deactivated_teachers' => Teacher::where('is_active', false)->count(),
+            'total_sections' => Section::count(),
             'total_completed_evals' => EvaluationResult::query()
                 ->where('academic_year', $academicYear)
                 ->where('semester', $semester)
@@ -71,9 +70,9 @@ class AdminDashboardController extends Controller
 
             $studentList = $students->map(function ($student) use ($completedUserIds) {
                 return [
-                    'id'               => $student->id,
-                    'name'             => $student->name,
-                    'email'            => $student->email,
+                    'id' => $student->id,
+                    'name' => $student->name,
+                    'email' => $student->email,
                     'has_participated' => $completedUserIds->has($student->id),
                 ];
             });
@@ -81,26 +80,26 @@ class AdminDashboardController extends Controller
             $participatedCount = $studentList->where('has_participated', true)->count();
 
             return [
-                'id'                    => $section->id,
-                'course'                => $section->course?->name ?? 'N/A',
-                'course_abbr'           => $section->course?->abbreviation ?? 'N/A',
-                'year'                  => $section->year_level,
-                'section'               => $section->name,
+                'id' => $section->id,
+                'course' => $section->course?->name ?? 'N/A',
+                'course_abbr' => $section->course?->abbreviation ?? 'N/A',
+                'year' => $section->year_level,
+                'section' => $section->name,
                 'students_participated' => $participatedCount,
-                'total_students'        => $studentList->count(),
-                'students'              => $studentList->values()->all(),
+                'total_students' => $studentList->count(),
+                'students' => $studentList->values()->all(),
             ];
         });
 
         // 6. Return Inertia response
         return Inertia::render('dashboard', [
-            'stats'           => $stats,
+            'stats' => $stats,
             'sectionProgress' => $sectionProgress,
-            'settings'        => $settings,
-            'availableTerms'  => $availableTerms,
-            'currentFilters'  => [
+            'settings' => $settings,
+            'availableTerms' => $availableTerms,
+            'currentFilters' => [
                 'academic_year' => $academicYear,
-                'semester'      => $semester,
+                'semester' => $semester,
             ],
         ]);
     }
