@@ -20,11 +20,11 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /app
 
-# Copy all project files
+# Copy application files
 COPY . .
 
-# Install PHP and Node dependencies, then build Vite assets
-RUN composer install --no-dev --optimize-autoloader
+# Install PHP and Node dependencies (with platform bypass)
+RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 RUN npm ci && npm run build
 
 # Start Laravel's built-in server on Render's dynamic port
