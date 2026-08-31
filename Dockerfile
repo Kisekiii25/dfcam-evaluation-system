@@ -28,5 +28,5 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs
 RUN npm ci && npm run build
 
-# Start Laravel's built-in server on Render's dynamic port
-CMD php artisan package:discover --ansi && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT
+# Start server safely
+CMD php artisan optimize:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT
