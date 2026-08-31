@@ -296,12 +296,16 @@ export default function Analytics({ teacher, metrics, settings }: AnalyticsProps
                                                     "{comment.text}"
                                                 </p>
                                                 <span className="text-[10px] text-zinc-400 font-mono">
-                                                    {new Date(comment.created_at).toLocaleDateString(undefined, {
+                                                    {new Date(comment.created_at).toLocaleString(undefined, {
                                                         year: 'numeric',
                                                         month: 'short',
                                                         day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                        hour12: true,
                                                     })}
                                                 </span>
+
                                             </div>
                                         ))}
                                     </div>

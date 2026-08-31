@@ -1,8 +1,41 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { Users, GraduationCap, Layers, CheckCircle2, Award, ChevronDown, X, Search, Check, AlertCircle, Eye } from 'lucide-react';
+import {
+    Users,
+    GraduationCap,
+    Layers,
+    CheckCircle2,
+    Award,
+    ChevronDown,
+    X,
+    Search,
+    Check,
+    AlertCircle,
+    Eye
+} from 'lucide-react';
 import { ChangeEvent, useState } from 'react';
+
+// Shadcn UI Components matching your Users page
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogOverlay,
+} from "@/components/ui/dialog";
+import { Button } from '@/components/ui/button';
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 interface StudentItem {
     id: number;
@@ -163,9 +196,9 @@ export default function Dashboard({
                             <div className="flex items-baseline gap-2">
                                 <h3 className="text-2xl font-black text-white">{stats?.active_teachers ?? 0}</h3>
                                 {stats?.deactivated_teachers > 0 && (
-                                    <span className="text-[11px] font-medium text-amber-400/80 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                                    <Badge variant="outline" className="text-[11px] font-medium text-amber-400/80 bg-amber-500/10 border-amber-500/20">
                                         {stats.deactivated_teachers} inactive
-                                    </span>
+                                    </Badge>
                                 )}
                             </div>
                         </div>
@@ -195,7 +228,7 @@ export default function Dashboard({
                     </div>
                 </div>
 
-                {/* Section Submission Progress Table */}
+                {/* Section Submission Progress Table using Shadcn UI Table */}
                 <div className="bg-[#111a36]/20 dark:bg-slate-900/15 border border-slate-800/80 rounded-2xl shadow-xl overflow-hidden flex flex-col flex-1">
                     <div className="p-5 border-b border-slate-800/80 bg-slate-900/20 flex items-center justify-between">
                         <div>
@@ -210,48 +243,50 @@ export default function Dashboard({
                                 <p className="text-sm text-slate-500">No evaluation records found for this academic term.</p>
                             </div>
                         ) : (
-                            <table className="w-full text-left border-collapse min-w-[600px]">
-                                <thead>
-                                    <tr className="border-b border-slate-800 text-[11px] font-black uppercase text-slate-400 tracking-wider">
-                                        <th className="pb-3 pl-2">Course / Program</th>
-                                        <th className="pb-3">Year Level</th>
-                                        <th className="pb-3">Section</th>
-                                        <th className="pb-3 text-center">Total Students</th>
-                                        <th className="pb-3 text-right pr-2">Participation & Rate</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-800/40 text-sm">
+                            <Table className="min-w-[600px]">
+                                <TableHeader>
+                                    <TableRow className="border-b border-slate-800 text-[11px] uppercase text-slate-400">
+                                        <TableHead className="pl-2">Course / Program</TableHead>
+                                        <TableHead>Year Level</TableHead>
+                                        <TableHead>Section</TableHead>
+                                        <TableHead className="text-center">Total Students</TableHead>
+                                        <TableHead className="text-right pr-2">Participation & Rate</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody className="divide-y divide-slate-800/40 text-sm">
                                     {sectionProgress.map((item, index) => {
                                         const total = item.total_students ?? 0;
                                         const participated = item.students_participated ?? 0;
                                         const percentage = total > 0 ? Math.min(100, Math.round((participated / total) * 100)) : 0;
 
                                         return (
-                                            <tr
+                                            <TableRow
                                                 key={index}
                                                 onClick={() => {
                                                     setSelectedSection(item);
                                                     setFilterTab('all');
                                                     setSearchQuery('');
                                                 }}
-                                                className="hover:bg-blue-600/10 cursor-pointer transition-all duration-150 group"
+                                                className="hover:bg-blue-600/10 cursor-pointer transition-all duration-150 group border-b border-slate-800/40"
                                             >
-                                                <td className="py-4 pl-2 font-bold text-white group-hover:text-blue-400 transition-colors flex items-center gap-2">
-                                                    <Eye className="w-4 h-4 opacity-0 group-hover:opacity-100 text-blue-400 transition-opacity" />
-                                                    {item.course}
-                                                </td>
-                                                <td className="py-4 text-slate-300 font-medium">Year {item.year}</td>
-                                                <td className="py-4">
-                                                    <span className="bg-slate-950 px-2 py-1 rounded text-xs border border-slate-800 font-semibold text-slate-400 group-hover:border-blue-500/40">
+                                                <TableCell className="py-4 pl-2 font-bold text-white group-hover:text-blue-400 transition-colors">
+                                                    <div className="flex items-center gap-2">
+                                                        <Eye className="w-4 h-4 opacity-0 group-hover:opacity-100 text-blue-400 transition-opacity" />
+                                                        {item.course}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="py-4 text-slate-300 font-medium">Year {item.year}</TableCell>
+                                                <TableCell className="py-4">
+                                                    <Badge variant="outline" className="bg-slate-950 border-slate-800 font-semibold text-slate-400 group-hover:border-blue-500/40">
                                                         Section {item.section}
-                                                    </span>
-                                                </td>
+                                                    </Badge>
+                                                </TableCell>
 
-                                                <td className="py-4 text-center font-bold text-slate-200">
+                                                <TableCell className="py-4 text-center font-bold text-slate-200">
                                                     {total} Students
-                                                </td>
+                                                </TableCell>
 
-                                                <td className="py-4 text-right pr-2">
+                                                <TableCell className="py-4 text-right pr-2">
                                                     <div className="flex flex-col items-end gap-1.5">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs font-bold text-emerald-400">
@@ -276,125 +311,127 @@ export default function Dashboard({
                                                             </div>
                                                         )}
                                                     </div>
-                                                </td>
-                                            </tr>
+                                                </TableCell>
+                                            </TableRow>
                                         );
                                     })}
-                                </tbody>
-                            </table>
+                                </TableBody>
+                            </Table>
                         )}
                     </div>
                 </div>
 
             </div>
 
-            {/* Student Participation Details Modal */}
-            {selectedSection && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-
-                        {/* Modal Header */}
-                        <div className="p-5 border-b border-slate-800 flex items-start justify-between bg-slate-950/60">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-0.5 rounded-full">
-                                        {selectedSection.course}
-                                    </span>
-                                    <span className="text-xs font-medium text-slate-400">
-                                        Year {selectedSection.year} • Section {selectedSection.section}
-                                    </span>
-                                </div>
-                                <h3 className="text-lg font-bold text-white mt-1">Student Evaluation Roster</h3>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                    Active Term: <span className="text-indigo-400 font-semibold">{currentFilters.academic_year} ({currentFilters.semester})</span>
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setSelectedSection(null)}
-                                className="cursor-pointer p-1.5 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        {/* Modal Navigation & Search */}
-                        <div className="p-4 border-b border-slate-800/80 bg-slate-900/40 flex flex-col sm:flex-row items-center justify-between gap-3">
-                            <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
-                                <button
-                                    onClick={() => setFilterTab('all')}
-                                    className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${filterTab === 'all' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
-                                >
-                                    All ({selectedSection.students.length})
-                                </button>
-                                <button
-                                    onClick={() => setFilterTab('participated')}
-                                    className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${filterTab === 'participated' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}
-                                >
-                                    Participated ({selectedSection.students.filter(s => s.has_participated).length})
-                                </button>
-                                <button
-                                    onClick={() => setFilterTab('pending')}
-                                    className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${filterTab === 'pending' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'}`}
-                                >
-                                    Pending ({selectedSection.students.filter(s => !s.has_participated).length})
-                                </button>
-                            </div>
-
-                            <div className="relative w-full sm:w-60">
-                                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
-                                <input
-                                    type="text"
-                                    placeholder="Search student..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 outline-none focus:border-blue-500"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Student Roster List */}
-                        <div className="p-4 overflow-y-auto flex-1 divide-y divide-slate-800/50">
-                            {filteredStudents.length === 0 ? (
-                                <div className="py-12 text-center text-slate-500 text-xs">
-                                    No students found matching the selected filter or query.
-                                </div>
-                            ) : (
-                                filteredStudents.map((student) => (
-                                    <div key={student.id} className="py-3 flex items-center justify-between hover:bg-slate-800/20 px-2 rounded-lg transition-colors">
-                                        <div>
-                                            <p className="text-sm font-semibold text-slate-100">{student.name}</p>
-                                            <p className="text-xs text-slate-400">{student.email}</p>
-                                        </div>
-
-                                        {student.has_participated ? (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                                <Check className="w-3.5 h-3.5" />
-                                                Participated
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                                <AlertCircle className="w-3.5 h-3.5" />
-                                                Pending
-                                            </span>
-                                        )}
+            {/* Student Participation Details Modal using Shadcn UI Dialog */}
+            <Dialog open={!!selectedSection} onOpenChange={(open) => !open && setSelectedSection(null)}>
+                <DialogOverlay className="bg-black/70 backdrop-blur-sm" />
+                <DialogContent className="bg-slate-900 border-slate-800 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl">
+                    {selectedSection && (
+                        <>
+                            {/* Modal Header */}
+                            <DialogHeader className="p-5 border-b border-slate-800 bg-slate-950/60 text-left">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">
+                                            {selectedSection.course}
+                                        </Badge>
+                                        <span className="text-xs font-medium text-slate-400">
+                                            Year {selectedSection.year} • Section {selectedSection.section}
+                                        </span>
                                     </div>
-                                ))
-                            )}
-                        </div>
+                                    <DialogTitle className="text-lg font-bold text-white mt-1">Student Evaluation Roster</DialogTitle>
+                                    <DialogDescription className="text-xs text-slate-400 mt-0.5">
+                                        Active Term: <span className="text-indigo-400 font-semibold">{currentFilters.academic_year} ({currentFilters.semester})</span>
+                                    </DialogDescription>
+                                </div>
+                            </DialogHeader>
 
-                        {/* Modal Footer */}
-                        <div className="p-4 border-t border-slate-800 bg-slate-950/40 flex justify-end">
-                            <button
-                                onClick={() => setSelectedSection(null)}
-                                className="cursor-pointer px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors"
-                            >
-                                Close
-                            </button>
-                        </div>
+                            {/* Modal Controls: Search & Tabs */}
+                            <div className="p-4 border-b border-slate-800/80 bg-slate-900/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+                                <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setFilterTab('all')}
+                                        className={`h-7 px-3 text-xs font-bold ${filterTab === 'all' ? 'bg-blue-600 text-white hover:bg-blue-600 hover:text-white' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        All ({selectedSection.students.length})
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setFilterTab('participated')}
+                                        className={`h-7 px-3 text-xs font-bold ${filterTab === 'participated' ? 'bg-emerald-600 text-white hover:bg-emerald-600 hover:text-white' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        Participated ({selectedSection.students.filter(s => s.has_participated).length})
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setFilterTab('pending')}
+                                        className={`h-7 px-3 text-xs font-bold ${filterTab === 'pending' ? 'bg-amber-600 text-white hover:bg-amber-600 hover:text-white' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        Pending ({selectedSection.students.filter(s => !s.has_participated).length})
+                                    </Button>
+                                </div>
 
-                    </div>
-                </div>
-            )}
+                                <div className="relative w-full sm:w-60">
+                                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                                    <Input
+                                        type="text"
+                                        placeholder="Search student..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="bg-slate-950 border-slate-800 pl-9 pr-3 py-1.5 text-xs text-slate-200 focus:border-blue-500 h-9"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Student Roster List */}
+                            <div className="p-4 overflow-y-auto flex-1 divide-y divide-slate-800/50">
+                                {filteredStudents.length === 0 ? (
+                                    <div className="py-12 text-center text-slate-500 text-xs">
+                                        No students found matching the selected filter or query.
+                                    </div>
+                                ) : (
+                                    filteredStudents.map((student) => (
+                                        <div key={student.id} className="py-3 flex items-center justify-between hover:bg-slate-800/20 px-2 rounded-lg transition-colors">
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-100">{student.name}</p>
+                                                <p className="text-xs text-slate-400">{student.email}</p>
+                                            </div>
+
+                                            {student.has_participated ? (
+                                                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 gap-1.5 px-2.5 py-1">
+                                                    <Check className="w-3.5 h-3.5" />
+                                                    Participated
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/20 gap-1.5 px-2.5 py-1">
+                                                    <AlertCircle className="w-3.5 h-3.5" />
+                                                    Pending
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="p-4 border-t border-slate-800 bg-slate-950/40 flex justify-end">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setSelectedSection(null)}
+                                    className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold"
+                                >
+                                    Close
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

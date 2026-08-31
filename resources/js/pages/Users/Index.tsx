@@ -535,7 +535,7 @@ export default function Index({ users, filters, academicYears }: IndexProps) {
             {/* Import Modal */}
             <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
                 <DialogOverlay className="bg-black/30" />
-                <DialogContent className="sm:max-w-[420px] w-[92vw] rounded-xl">
+                <DialogContent className="sm:max-w-[480px] w-[92vw] rounded-xl">
                     <form onSubmit={handleImportSubmit}>
                         <DialogHeader>
                             <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 mb-2">
@@ -543,9 +543,37 @@ export default function Index({ users, filters, academicYears }: IndexProps) {
                             </div>
                             <DialogTitle className="text-center text-base sm:text-lg font-bold">Import Users via Excel</DialogTitle>
                             <DialogDescription className="text-center text-xs sm:text-sm pt-1">
-                                Upload an .xlsx or .csv file containing student or staff records.
+                                Upload an .xlsx, .xls, or .csv file to bulk import student or staff records.
                             </DialogDescription>
                         </DialogHeader>
+
+                        {/* Excel Formatting Guidelines Card */}
+                        <div className="mt-4 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs space-y-2">
+                            <p className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                                Excel File Formatting Requirements:
+                            </p>
+                            <ul className="list-disc list-inside space-y-1 text-zinc-600 dark:text-zinc-400 pl-1 leading-relaxed">
+                                <li>
+                                    <strong>Header Row:</strong> Must start on <strong>Row 6</strong>.
+                                </li>
+                                <li>
+                                    <strong>Required Columns:</strong> <code className="text-emerald-600 dark:text-emerald-400 font-mono">name</code>, <code className="text-emerald-600 dark:text-emerald-400 font-mono">email</code>
+                                </li>
+                                <li>
+                                    <strong>Optional Columns:</strong> <code className="text-emerald-600 dark:text-emerald-400 font-mono">role</code> (defaults to <em>student</em>), <code className="text-emerald-600 dark:text-emerald-400 font-mono">section</code>, <code className="text-emerald-600 dark:text-emerald-400 font-mono">password</code> (defaults to <em>password123</em>)
+                                </li>
+                                <li>
+                                    <strong>Section Format:</strong> Must match <em>Course Year - Section</em> (e.g., <span className="italic">BS Information Systems 1 - 1</span>)
+                                </li>
+                                <li>
+                                    <strong>Flexible Columns:</strong> Headers can be in any order, but must be spelled as <code className="text-emerald-600 dark:text-emerald-400 font-mono">name</code>, <code className="text-emerald-600 dark:text-emerald-400 font-mono">email</code>, <code className="text-emerald-600 dark:text-emerald-400 font-mono">role</code>, <code className="text-emerald-600 dark:text-emerald-400 font-mono">section</code>, or <code className="text-emerald-600 dark:text-emerald-400 font-mono">password</code>.
+                                </li>
+                                <li>
+                                    Existing accounts with the same email will be updated or restored without losing data.
+                                </li>
+                            </ul>
+                        </div>
 
                         <div className="my-4 space-y-3">
                             <div className="grid w-full items-center gap-1.5">
@@ -651,52 +679,6 @@ export default function Index({ users, filters, academicYears }: IndexProps) {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
-                <DialogContent className="sm:max-w-[420px] w-[92vw] rounded-xl">
-                    <form onSubmit={handleImportSubmit}>
-                        <DialogHeader>
-                            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 mb-2">
-                                <FileSpreadsheet className="h-5 w-5" />
-                            </div>
-                            <DialogTitle className="text-center text-base sm:text-lg font-bold">Import Users via Excel</DialogTitle>
-                            <DialogDescription className="text-center text-xs sm:text-sm pt-1">
-                                Upload an .xlsx or .csv file containing student or staff records.
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="my-4 space-y-3">
-                            <div className="grid w-full items-center gap-1.5">
-                                <Input
-                                    type="file"
-                                    accept=".xlsx, .xls, .csv"
-                                    onChange={(e) => setData('file', e.target.files?.[0] || null)}
-                                    className="cursor-pointer text-xs sm:text-sm"
-                                />
-                                {errors.file && (
-                                    <p className="text-xs text-red-500 font-medium mt-1">{errors.file}</p>
-                                )}
-                            </div>
-
-                            {progress && (
-                                <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
-                                    <div className="bg-emerald-500 h-2 rounded-full transition-all" style={{ width: `${progress.percentage}%` }} />
-                                </div>
-                            )}
-                        </div>
-
-                        <DialogFooter className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-0">
-                            <Button variant="outline" type="button" onClick={() => setImportModalOpen(false)} className="w-full sm:w-auto">
-                                Cancel
-                            </Button>
-                            <Button type="submit" disabled={processing || !data.file} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white">
-                                <Upload className="w-4 h-4 mr-1.5" />
-                                {processing ? 'Uploading...' : 'Upload File'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
             {/* Delete Modals */}
             <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
                 <AlertDialogContent className="sm:max-w-[420px] w-[92vw] rounded-xl">
@@ -753,52 +735,6 @@ export default function Index({ users, filters, academicYears }: IndexProps) {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
-            <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
-                <DialogContent className="sm:max-w-[420px] w-[92vw] rounded-xl">
-                    <form onSubmit={handleImportSubmit}>
-                        <DialogHeader>
-                            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 mb-2">
-                                <FileSpreadsheet className="h-5 w-5" />
-                            </div>
-                            <DialogTitle className="text-center text-base sm:text-lg font-bold">Import Users via Excel</DialogTitle>
-                            <DialogDescription className="text-center text-xs sm:text-sm pt-1">
-                                Upload an .xlsx or .csv file containing student or staff records.
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="my-4 space-y-3">
-                            <div className="grid w-full items-center gap-1.5">
-                                <Input
-                                    type="file"
-                                    accept=".xlsx, .xls, .csv"
-                                    onChange={(e) => setData('file', e.target.files?.[0] || null)}
-                                    className="cursor-pointer text-xs sm:text-sm"
-                                />
-                                {errors.file && (
-                                    <p className="text-xs text-red-500 font-medium mt-1">{errors.file}</p>
-                                )}
-                            </div>
-
-                            {progress && (
-                                <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
-                                    <div className="bg-emerald-500 h-2 rounded-full transition-all" style={{ width: `${progress.percentage}%` }} />
-                                </div>
-                            )}
-                        </div>
-
-                        <DialogFooter className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-0">
-                            <Button variant="outline" type="button" onClick={() => setImportModalOpen(false)} className="w-full sm:w-auto">
-                                Cancel
-                            </Button>
-                            <Button type="submit" disabled={processing || !data.file} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white">
-                                <Upload className="w-4 h-4 mr-1.5" />
-                                {processing ? 'Uploading...' : 'Upload File'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
 
         </AppLayout>
     );

@@ -38,12 +38,10 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
         $this->academicYear = $academicYear ?? $activeSetting?->academic_year ?? '2025-2026';
         $this->semester = $semester ?? $activeSetting?->semester ?? '1st';
 
-        // 1. Only load categories that have numerical 'rating' questions
         $this->ratingCategories = Category::whereHas('questions', function ($q) {
             $q->where('type', 'rating');
         })->orderBy('order', 'asc')->get();
 
-        // 2. Load all comment questions
         $this->commentQuestions = Question::where('type', 'comment')
             ->orderBy('order', 'asc')
             ->get();
@@ -91,7 +89,6 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
             $teacher->is_active ? 'Active' : 'Inactive',
         ];
 
-        // 1. Average Rating per category
         foreach ($this->ratingCategories as $category) {
             $catAvg = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
                 ->where('questions.category_id', $category->id)
@@ -104,7 +101,6 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
             $row[] = $catAvg ? number_format($catAvg, 2).' / 5' : 'N/A';
         }
 
-        // 2. Overall Average Rating + Guidance Descriptive Text
         $overallAvg = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
             ->where('evaluation_results.teacher_id', $teacher->id)
             ->where('evaluation_results.academic_year', $academicYear)
@@ -115,7 +111,6 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
         $ratingInfo = $this->getRatingBadge($overallAvg ? (float) $overallAvg : null);
         $row[] = $ratingInfo['label'];
 
-        // 3. Comment Questions
         foreach ($this->commentQuestions as $question) {
             $answers = EvaluationResult::where('question_id', $question->id)
                 ->where('teacher_id', $teacher->id)
@@ -133,7 +128,6 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
         return $row;
     }
 
-    // Helper method to map guidance rubric ratings to labels and soft hex colors
     private function getRatingBadge(?float $score): array
     {
         if ($score === null) {
@@ -147,32 +141,32 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
         if ($score >= 4.75) {
             return [
                 'label' => number_format($score, 2).' - Outstanding',
-                'bg' => 'C6EFCE', // Soft Dark Green Fill
-                'font' => '006100',  // Dark Green Text
+                'bg' => 'C6EFCE',
+                'font' => '006100',
             ];
         } elseif ($score >= 3.50) {
             return [
                 'label' => number_format($score, 2).' - Very Satisfied',
-                'bg' => 'E2EFDA', // Soft Light Green Fill
-                'font' => '375623',  // Forest Green Text
+                'bg' => 'E2EFDA',
+                'font' => '375623',
             ];
         } elseif ($score >= 2.50) {
             return [
                 'label' => number_format($score, 2).' - Moderately Satisfied',
-                'bg' => 'FFEB9C', // Soft Yellow Fill
-                'font' => '9C6500',  // Dark Gold Text
+                'bg' => 'FFEB9C',
+                'font' => '9C6500',
             ];
         } elseif ($score >= 1.50) {
             return [
                 'label' => number_format($score, 2).' - Slightly Satisfied',
-                'bg' => 'FCE4D6', // Soft Orange Fill
-                'font' => 'C65911',  // Dark Orange Text
+                'bg' => 'FCE4D6',
+                'font' => 'C65911',
             ];
         } else {
             return [
                 'label' => number_format($score, 2).' - Not Satisfied',
-                'bg' => 'FFC7CE', // Soft Red Fill
-                'font' => '9C0006',  // Dark Red Text
+                'bg' => 'FFC7CE',
+                'font' => '9C0006',
             ];
         }
     }
@@ -212,7 +206,7 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
                     ? $this->semester
                     : "{$this->semester} Semester";
 
-                // 1. Title Header Formatting
+                // Title Formatting
                 $sheet->mergeCells("B2:{$lastColumn}2");
                 $sheet->setCellValue('B2', 'DR. FILEMON C. AGUILAR MEMORIAL COLLEGE OF LAS PIÑAS');
                 $sheet->getStyle('B2')->getFont()->setBold(true)->setSize(13);
@@ -228,18 +222,18 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
                 $sheet->getStyle('B4')->getFont()->setSize(10)->setItalic(true);
                 $sheet->getStyle('B4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                // 2. Table Header Row Formatting (Row 6)
+                // Table Header Row
                 $headerRange = "A6:{$lastColumn}6";
                 $sheet->getStyle($headerRange)->getFont()->setBold(true)->getColor()->setARGB('FFFFFF');
                 $sheet->getStyle($headerRange)->getFill()
                     ->setFillType(Fill::FILL_SOLID)
-                    ->getStartColor()->setARGB('1034A6'); // Dark Navy Blue
+                    ->getStartColor()->setARGB('1034A6');
 
                 $sheet->getStyle($headerRange)->getAlignment()
                     ->setHorizontal(Alignment::HORIZONTAL_CENTER)
                     ->setVertical(Alignment::VERTICAL_CENTER);
 
-                // 3. Data Alignment and Text Wrapping
+                // Data Formatting
                 if ($highestRow >= 7) {
                     $dataRange = "A7:{$lastColumn}{$highestRow}";
 
@@ -250,8 +244,13 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
                     $sheet->getStyle("A7:A{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("C7:C{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                    // 4. Highlight Overall Average Rating Cells based on Guidance Scale
-                    $overallColIndex = 3 + count($this->ratingCategories) + 1; // Col A, B, C + rating categories
+                    // FIX 1: Cap Data Rows Height to prevent huge vertical empty space
+                    for ($row = 7; $row <= $highestRow; $row++) {
+                        $sheet->getRowDimension($row)->setRowHeight(45); // Fixed row height fits ~3 lines nicely
+                    }
+
+                    // Highlight Ratings
+                    $overallColIndex = 3 + count($this->ratingCategories) + 1;
                     $overallColLetter = Coordinate::stringFromColumnIndex($overallColIndex);
 
                     foreach ($teachers as $index => $teacher) {
@@ -267,12 +266,10 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
                         $badge = $this->getRatingBadge($overallAvg ? (float) $overallAvg : null);
                         $cellCoordinate = "{$overallColLetter}{$currentRow}";
 
-                        // Fill Cell Background Color
                         $sheet->getStyle($cellCoordinate)->getFill()
                             ->setFillType(Fill::FILL_SOLID)
                             ->getStartColor()->setARGB($badge['bg']);
 
-                        // Text Color & Alignment
                         $sheet->getStyle($cellCoordinate)->getFont()
                             ->setBold(true)
                             ->getColor()->setARGB($badge['font']);
@@ -282,12 +279,12 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
                     }
                 }
 
-                // 5. Set readable fixed width for comment columns
+                // FIX 2: Fixed column width on comments without breaking text flow
                 $firstCommentColIndex = 3 + count($this->ratingCategories) + 2;
                 for ($i = $firstCommentColIndex; $i <= $totalColumns; $i++) {
                     $colLetter = Coordinate::stringFromColumnIndex($i);
                     $sheet->getColumnDimension($colLetter)->setAutoSize(false);
-                    $sheet->getColumnDimension($colLetter)->setWidth(50);
+                    $sheet->getColumnDimension($colLetter)->setWidth(40);
                 }
             },
         ];

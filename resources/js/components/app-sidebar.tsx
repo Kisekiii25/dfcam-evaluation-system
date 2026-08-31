@@ -53,7 +53,7 @@ const navSections: NavSection[] = [
 const footerNavItems: NavItem[] = [
     {
         title: 'Documentation',
-        url: 'https://laravel.com/docs/starter-kits',
+        url: '',
         icon: BookOpen,
     },
 ];

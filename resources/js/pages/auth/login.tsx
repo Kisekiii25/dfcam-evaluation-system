@@ -60,14 +60,16 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                     </div>
 
                     <div className="grid gap-2">
-                        <div className="flex items-center">
+                        {/* FORGET PASSWORD? */}
+
+                        {/* <div className="flex items-center">
                             <Label htmlFor="password">Password</Label>
                             {canResetPassword && (
                                 <TextLink href={route('password.request')} className="ml-auto text-sm" tabIndex={5}>
                                     Forgot password?
                                 </TextLink>
                             )}
-                        </div>
+                        </div> */}
 
                         {/* Password Input with Visibility Toggle */}
                         <div className="relative">

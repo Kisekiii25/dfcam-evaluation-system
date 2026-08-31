@@ -83,6 +83,16 @@ export default function Create() {
         );
     };
 
+    const formatDeletedDate = (dateString?: string) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+
+        return new Intl.DateTimeFormat('en-US', {
+            dateStyle: 'medium', // e.g., "Aug 24, 2026"
+            timeStyle: 'short',  // e.g., "6:18 PM"
+        }).format(date);
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="User Create" />
@@ -210,7 +220,7 @@ export default function Create() {
                             Previously Deleted Account Found
                         </DialogTitle>
                         <DialogDescription className="pt-2 text-sm text-zinc-600 dark:text-zinc-300">
-                            The email <strong className="text-zinc-900 dark:text-zinc-100">{trashedUser?.email}</strong> was previously registered to <strong className="text-zinc-900 dark:text-zinc-100">{trashedUser?.name}</strong> and deleted on <strong className="text-zinc-900 dark:text-zinc-100">{trashedUser?.deleted_at}</strong>.
+                            The email <strong className="text-zinc-900 dark:text-zinc-100">{trashedUser?.email}</strong> was previously registered to <strong className="text-zinc-900 dark:text-zinc-100">{trashedUser?.name}</strong> and deleted on <strong className="text-zinc-900 dark:text-zinc-100">{formatDeletedDate(trashedUser?.deleted_at)}</strong>.
                         </DialogDescription>
                     </DialogHeader>
 

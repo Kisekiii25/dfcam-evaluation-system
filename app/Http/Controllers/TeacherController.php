@@ -139,7 +139,7 @@ class TeacherController extends Controller
 
         TeachingLoad::whereIn('id', $validated['ids'])->delete();
 
-        return back()->with('success', count($validated['ids']).' teaching loads deleted successfully.');
+        return back()->with('success', count($validated['ids']) . ' teaching loads deleted successfully.');
     }
 
     public function toggleStatus(Teacher $teacher)
@@ -347,6 +347,8 @@ class TeacherController extends Controller
 
     public function export(Request $request)
     {
+        $timestamp = now()->format('Y-m-d_h-ia');
+
         $settings = Cache::remember('active_evaluation_setting', 3600, function () {
             return EvaluationSetting::find(1) ?? EvaluationSetting::where('is_active', true)->first();
         });
@@ -356,7 +358,7 @@ class TeacherController extends Controller
 
         return Excel::download(
             new TeacherResultsExport($academicYear, $semester),
-            'teacher_evaluation_results.xlsx'
+            "Teacher_Evaluation_Results_{$timestamp}.xlsx"
         );
     }
 }
