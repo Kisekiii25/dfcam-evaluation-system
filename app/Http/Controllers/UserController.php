@@ -27,36 +27,36 @@ class UserController extends Controller
         $rawSemester = (string) $request->input('semester', $activeSetting?->semester ?? '1st');
 
         // Normalize semester formats
-        $isFirstSem = str_contains($rawSemester, '1');
+        // 1. Identify numeric semester strictly
+        $isFirstSem = str_contains((string) $rawSemester, '1');
+        $numericSemester = $isFirstSem ? 1 : 2;
         $shortSemester = $isFirstSem ? '1st' : '2nd';
-        $selectedSemesterUi = str_contains($rawSemester, 'Summer') ? 'Summer' : $shortSemester;
 
-        // Use uniform values matching your DB column type (e.g., ['1st', '1st Semester'] or integers)
-        $semesterVariants = $isFirstSem
-            ? ['1', '1st', '1st Semester']
-            : ['2', '2nd', '2nd Semester'];
+        $selectedSemesterUi = str_contains((string) $rawSemester, 'Summer') ? 'Summer' : $shortSemester;
 
-        $query = User::query()
-            ->select('users.*')
-            ->with(['section.course']);
+        // Send ONLY uniform integers to the database query
+        $semesterVariants = [$numericSemester];
 
-        // Search Filter
-        $query->when($request->filled('search'), function ($q) use ($request) {
-            $search = $request->input('search');
-            $q->where(function ($sub) use ($search) {
-                $sub->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
-        });
+        // 2. Wrap academic_year as a strict string literal
+        $academicYearStr = (string) $academicYear;
 
-        // 1. Count completed evaluations (active teachers only)
+        // Subquery 1: Completed evaluations
         $completedSubquery = DB::table('evaluation_results')
             ->join('teachers', 'teachers.id', '=', 'evaluation_results.teacher_id')
             ->where('teachers.is_active', true)
             ->selectRaw('COUNT(DISTINCT evaluation_results.teacher_id)')
             ->whereColumn('evaluation_results.user_id', 'users.id')
-            ->where('evaluation_results.academic_year', (string) $academicYear)
+            ->where('evaluation_results.academic_year', $academicYearStr)
             ->whereIn('evaluation_results.semester', $semesterVariants);
+
+        // Subquery 2: Assigned teaching loads
+        $assignedSubquery = DB::table('teaching_loads')
+            ->join('teachers', 'teachers.id', '=', 'teaching_loads.teacher_id')
+            ->where('teachers.is_active', true)
+            ->selectRaw('COUNT(DISTINCT teaching_loads.teacher_id)')
+            ->whereColumn('teaching_loads.section_id', 'users.section_id')
+            ->where('teaching_loads.academic_year', $academicYearStr)
+            ->whereIn('teaching_loads.semester', $semesterVariants);
 
         $query->selectSub($completedSubquery, 'evaluations_completed_count');
 

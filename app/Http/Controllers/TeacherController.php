@@ -30,16 +30,16 @@ class TeacherController extends Controller
             return EvaluationSetting::find(1) ?? EvaluationSetting::where('is_active', true)->first();
         });
 
-        $academicYear = $settings->academic_year ?? '';
-        $semester = $settings->semester ?? '';
+        $academicYear = (string) ($settings->academic_year ?? '');
+        $semester = (string) ($settings->semester ?? '');
 
-        // Subquery to calculate average rating per teacher in 1 query
+        // Subquery to calculate average rating per teacher in 1 query (with PostgreSQL type cast)
         $avgSubquery = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
             ->whereColumn('evaluation_results.teacher_id', 'teachers.id')
             ->where('evaluation_results.academic_year', $academicYear)
             ->where('evaluation_results.semester', $semester)
             ->where('questions.type', 'rating')
-            ->selectRaw('ROUND(AVG(evaluation_results.answer), 2)');
+            ->selectRaw('ROUND(AVG(CAST(evaluation_results.answer AS INTEGER)), 2)');
 
         // 2. Load teachers with computed rating in a single SQL operation
         $teachers = Teacher::select('teachers.*')
@@ -221,10 +221,10 @@ class TeacherController extends Controller
             return EvaluationSetting::find(1) ?? EvaluationSetting::where('is_active', true)->first();
         });
 
-        $academicYear = $settings->academic_year ?? '';
-        $semester = $settings->semester ?? '';
+        $academicYear = (string) ($settings->academic_year ?? '');
+        $semester = (string) ($settings->semester ?? '');
 
-        // 1. Single query to fetch ALL question averages for this teacher
+        // 1. Single query to fetch ALL question averages for this teacher (with PostgreSQL type cast)
         $questionAverages = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
             ->where('evaluation_results.teacher_id', $teacher->id)
             ->where('evaluation_results.academic_year', $academicYear)
@@ -234,9 +234,11 @@ class TeacherController extends Controller
             ->select(
                 'evaluation_results.question_id',
                 'questions.category_id',
-                DB::raw('AVG(evaluation_results.answer) as avg_score')
+                DB::raw('AVG(CAST(evaluation_results.answer AS INTEGER)) as avg_score')
             )
             ->get();
+
+        // ... rest of analytics method remains unchanged
 
         $questionAvgMap = $questionAverages->pluck('avg_score', 'question_id');
         $overallAverage = $questionAverages->avg('avg_score');
