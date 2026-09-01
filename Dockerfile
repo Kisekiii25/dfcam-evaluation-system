@@ -6,8 +6,8 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# --- Stage 2: Final Production Environment ---
-FROM php:8.2-cli
+# --- Stage 2: Final Production Environment (PHP 8.4) ---
+FROM php:8.4-cli
 
 # Install system dependencies & PHP extensions
 RUN apt-get update && apt-get install -y \
@@ -32,9 +32,9 @@ COPY . .
 # Copy built frontend assets from Stage 1
 COPY --from=frontend /app/public/build ./public/build
 
-# Clean vendor and install fresh dependencies without scripts
+# Clean vendor and install dependencies
 RUN rm -rf vendor bootstrap/cache/*.php
-RUN composer install --no-dev --no-scripts --ignore-platform-reqs
+RUN composer install --no-dev --no-scripts
 RUN composer dump-autoload --optimize --no-scripts
 
 # Expose port and start Laravel server
