@@ -18,45 +18,46 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        // Cache active settings for 1 hour to prevent constant DB hits during peak traffic
+        // Cache active settings for 1 hour to prevent constant DB hits
         $activeSetting = Cache::remember('active_evaluation_setting', 3600, function () {
             return EvaluationSetting::find(1) ?? EvaluationSetting::where('is_active', true)->first();
         });
 
-        $academicYear = $request->input('academic_year', $activeSetting?->academic_year ?? '2025-2026');
+        $academicYear = (string) $request->input('academic_year', $activeSetting?->academic_year ?? '2025-2026');
         $rawSemester = (string) $request->input('semester', $activeSetting?->semester ?? '1st');
 
         // Normalize semester formats
-        // 1. Identify numeric semester strictly
-        $isFirstSem = str_contains((string) $rawSemester, '1');
-        $numericSemester = $isFirstSem ? 1 : 2;
+        $isFirstSem = str_contains($rawSemester, '1');
         $shortSemester = $isFirstSem ? '1st' : '2nd';
+        $selectedSemesterUi = str_contains($rawSemester, 'Summer') ? 'Summer' : $shortSemester;
 
-        $selectedSemesterUi = str_contains((string) $rawSemester, 'Summer') ? 'Summer' : $shortSemester;
+        // Send uniform semester values matching DB column format
+        $semesterVariants = $isFirstSem
+            ? ['1', '1st', '1st Semester']
+            : ['2', '2nd', '2nd Semester'];
 
-        // Send ONLY uniform integers to the database query
-        $semesterVariants = [$numericSemester];
+        // Initialize $query BEFORE subqueries are executed
+        $query = User::query()
+            ->select('users.*')
+            ->with(['section.course']);
 
-        // 2. Wrap academic_year as a strict string literal
-        $academicYearStr = (string) $academicYear;
+        // Search Filter
+        $query->when($request->filled('search'), function ($q) use ($request) {
+            $search = $request->input('search');
+            $q->where(function ($sub) use ($search) {
+                $sub->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        });
 
-        // Subquery 1: Completed evaluations
+        // 1. Count completed evaluations (active teachers only)
         $completedSubquery = DB::table('evaluation_results')
             ->join('teachers', 'teachers.id', '=', 'evaluation_results.teacher_id')
             ->where('teachers.is_active', true)
             ->selectRaw('COUNT(DISTINCT evaluation_results.teacher_id)')
             ->whereColumn('evaluation_results.user_id', 'users.id')
-            ->where('evaluation_results.academic_year', $academicYearStr)
+            ->where('evaluation_results.academic_year', $academicYear)
             ->whereIn('evaluation_results.semester', $semesterVariants);
-
-        // Subquery 2: Assigned teaching loads
-        $assignedSubquery = DB::table('teaching_loads')
-            ->join('teachers', 'teachers.id', '=', 'teaching_loads.teacher_id')
-            ->where('teachers.is_active', true)
-            ->selectRaw('COUNT(DISTINCT teaching_loads.teacher_id)')
-            ->whereColumn('teaching_loads.section_id', 'users.section_id')
-            ->where('teaching_loads.academic_year', $academicYearStr)
-            ->whereIn('teaching_loads.semester', $semesterVariants);
 
         $query->selectSub($completedSubquery, 'evaluations_completed_count');
 
@@ -66,7 +67,7 @@ class UserController extends Controller
             ->where('teachers.is_active', true)
             ->selectRaw('COUNT(DISTINCT teaching_loads.teacher_id)')
             ->whereColumn('teaching_loads.section_id', 'users.section_id')
-            ->where('teaching_loads.academic_year', (string) $academicYear)
+            ->where('teaching_loads.academic_year', $academicYear)
             ->whereIn('teaching_loads.semester', $semesterVariants);
 
         $query->selectSub($assignedSubquery, 'total_teachers_to_evaluate_count');
