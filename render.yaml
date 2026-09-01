@@ -1,9 +1,7 @@
 services:
   - type: web
     name: dfcam-evaluation-system
-    env: php
-    buildCommand: "composer install --no-dev --no-scripts && npm ci && npm run build"
-    startCommand: "php artisan optimize:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT"
+    env: docker
     envVars:
       - key: APP_ENV
         value: production
