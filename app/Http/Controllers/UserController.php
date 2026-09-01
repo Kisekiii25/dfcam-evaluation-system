@@ -20,7 +20,7 @@ class UserController extends Controller
     {
         // Cache active settings for 1 hour to prevent constant DB hits
         $activeSetting = Cache::remember('active_evaluation_setting', 3600, function () {
-            return EvaluationSetting::find(1) ?? EvaluationSetting::where('is_active', true)->first();
+            return EvaluationSetting::where('is_active', true)->first() ?? EvaluationSetting::find(1);
         });
 
         $academicYear = (string) $request->input('academic_year', $activeSetting?->academic_year ?? '2025-2026');

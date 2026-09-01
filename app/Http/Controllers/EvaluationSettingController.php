@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\EvaluationSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,14 +16,15 @@ class EvaluationSettingController extends Controller
      */
     public function index(): Response
     {
-        // Fetch existing settings or return a default baseline object to prevent null frontend crashes
-        $settings = EvaluationSetting::first() ?? new EvaluationSetting([
-            'academic_year' => '',
-            'semester' => '',
-            'start_date' => null,
-            'end_date' => null,
-            'is_active' => false,
-        ]);
+        $settings = EvaluationSetting::where('is_active', true)->first()
+            ?? EvaluationSetting::first()
+            ?? new EvaluationSetting([
+                'academic_year' => '',
+                'semester' => '',
+                'start_date' => null,
+                'end_date' => null,
+                'is_active' => false,
+            ]);
 
         return Inertia::render('Admin/Settings/Evaluation', [
             'settings' => $settings,
@@ -42,10 +44,18 @@ class EvaluationSettingController extends Controller
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        // Safely update the single setting record or create it if missing
+        // If activating this row, deactivate all other rows first
+        if (!empty($validated['is_active'])) {
+            EvaluationSetting::where('is_active', true)->update(['is_active' => false]);
+        }
+
         $setting = EvaluationSetting::first() ?? new EvaluationSetting;
         $setting->fill($validated);
         $setting->save();
+
+        // CRITICAL: Clear cache so StudentController picks up the changes immediately
+        Cache::forget('active_evaluation_setting');
+        Cache::forget('academic_years_list');
 
         return back()->with('success', 'Evaluation period settings updated successfully.');
     }
