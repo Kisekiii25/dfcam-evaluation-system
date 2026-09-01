@@ -26,15 +26,13 @@ class UserController extends Controller
         $academicYear = (string) $request->input('academic_year', $activeSetting?->academic_year ?? '2025-2026');
         $rawSemester = (string) $request->input('semester', $activeSetting?->semester ?? '1st');
 
-        // Normalize semester formats
+        // Normalize semester strictly to integers or matching string values
         $isFirstSem = str_contains($rawSemester, '1');
         $shortSemester = $isFirstSem ? '1st' : '2nd';
         $selectedSemesterUi = str_contains($rawSemester, 'Summer') ? 'Summer' : $shortSemester;
 
-        // Send uniform semester values matching DB column format
-        $semesterVariants = $isFirstSem
-            ? ['1', '1st', '1st Semester']
-            : ['2', '2nd', '2nd Semester'];
+        // Send ONLY values matching the column data type
+        $semesterValue = $isFirstSem ? '1st' : '2nd';
 
         // Initialize $query BEFORE subqueries are executed
         $query = User::query()
@@ -57,18 +55,27 @@ class UserController extends Controller
             ->selectRaw('COUNT(DISTINCT evaluation_results.teacher_id)')
             ->whereColumn('evaluation_results.user_id', 'users.id')
             ->where('evaluation_results.academic_year', $academicYear)
-            ->whereIn('evaluation_results.semester', $semesterVariants);
+            ->where(function ($q) use ($isFirstSem) {
+                if ($isFirstSem) {
+                    $q->whereIn('evaluation_results.semester', ['1', '1st', '1st Semester']);
+                } else {
+                    $q->whereIn('evaluation_results.semester', ['2', '2nd', '2nd Semester']);
+                }
+            });
 
         $query->selectSub($completedSubquery, 'evaluations_completed_count');
 
         // 2. Count assigned teaching loads (active teachers only)
+        // CAST teaching_loads.semester to TEXT in SQL so PostgreSQL allows string matching safely
         $assignedSubquery = DB::table('teaching_loads')
             ->join('teachers', 'teachers.id', '=', 'teaching_loads.teacher_id')
             ->where('teachers.is_active', true)
             ->selectRaw('COUNT(DISTINCT teaching_loads.teacher_id)')
             ->whereColumn('teaching_loads.section_id', 'users.section_id')
             ->where('teaching_loads.academic_year', $academicYear)
-            ->whereIn('teaching_loads.semester', $semesterVariants);
+            ->whereRaw(
+                "CAST(teaching_loads.semester AS TEXT) IN (" . ($isFirstSem ? "'1', '1st', '1st Semester'" : "'2', '2nd', '2nd Semester'") . ")"
+            );
 
         $query->selectSub($assignedSubquery, 'total_teachers_to_evaluate_count');
 
