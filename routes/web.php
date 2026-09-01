@@ -19,6 +19,14 @@ use Inertia\Inertia;
 |--------------------------------------------------------------------------
 */
 
+use Illuminate\Support\Facades\Artisan;
+
+Route::get('/clear-cache-admin-tool', function () {
+    Artisan::call('cache:clear');
+    Artisan::call('config:clear');
+    return 'Cache cleared successfully!';
+});
+
 Route::get('/', function () {
     if (Auth::check()) {
         if (Auth::user()->must_change_password) {
