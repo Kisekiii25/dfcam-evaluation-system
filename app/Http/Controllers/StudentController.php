@@ -16,17 +16,19 @@ use Inertia\Inertia;
 class StudentController extends Controller
 {
     /**
-     * Helper: Fetch active evaluation settings (only returning actually active records).
+     * Helper: Fetch active evaluation settings cleanly without strict type mismatches.
      */
     private function getActiveSettings(): ?EvaluationSetting
     {
-        return Cache::remember('active_evaluation_setting', 60, function () {
-            return EvaluationSetting::where('is_active', true)->first();
+        return Cache::remember('active_evaluation_setting', 10, function () {
+            return EvaluationSetting::where('is_active', true)
+                ->orWhere('is_active', 1)
+                ->first();
         });
     }
 
     /**
-     * Helper: Normalize semester formats into standard array variants
+     * Helper: Normalize semester formats into standard array variants.
      */
     private function getSemesterVariants(string $semester): array
     {
@@ -37,6 +39,13 @@ class StudentController extends Controller
 
     public function index()
     {
+        $user = Auth::user();
+
+        // Prevent Admins from viewing Student Dashboard
+        if ($user && in_array($user->role, ['admin', 'super-admin'])) {
+            return redirect()->route('dashboard');
+        }
+
         $settings = $this->getActiveSettings();
 
         return Inertia::render('Student/Dashboard', [
@@ -46,6 +55,13 @@ class StudentController extends Controller
 
     public function selectTeacher()
     {
+        $user = Auth::user();
+
+        // Prevent Admins from accessing teacher selection
+        if ($user && in_array($user->role, ['admin', 'super-admin'])) {
+            return redirect()->route('dashboard');
+        }
+
         $settings = $this->getActiveSettings();
 
         if (! $settings) {
@@ -57,7 +73,6 @@ class StudentController extends Controller
             ]);
         }
 
-        $user = Auth::user();
         $semesterVariants = $this->getSemesterVariants((string) $settings->semester);
 
         if (! $user->section_id) {
@@ -91,6 +106,12 @@ class StudentController extends Controller
 
     public function showForm(Request $request, Teacher $teacher)
     {
+        $user = Auth::user();
+
+        if ($user && in_array($user->role, ['admin', 'super-admin'])) {
+            return redirect()->route('dashboard');
+        }
+
         if (! $teacher->is_active) {
             return redirect()->route('evaluation.select')
                 ->with('error', 'This instructor account is currently inactive.');
@@ -103,7 +124,7 @@ class StudentController extends Controller
                 ->with('error', 'Evaluation portal is currently closed.');
         }
 
-        $user = Auth::user()->load('section.course');
+        $user->load('section.course');
         $semesterVariants = $this->getSemesterVariants((string) $settings->semester);
 
         $isValidLoad = TeachingLoad::where('teacher_id', $teacher->id)
@@ -150,6 +171,12 @@ class StudentController extends Controller
 
     public function submit(Request $request, Teacher $teacher)
     {
+        $user = Auth::user();
+
+        if ($user && in_array($user->role, ['admin', 'super-admin'])) {
+            return redirect()->route('dashboard');
+        }
+
         if (! $teacher->is_active) {
             return redirect()->route('evaluation.select')
                 ->with('error', 'Evaluation submission rejected: Instructor account is inactive.');
@@ -162,7 +189,7 @@ class StudentController extends Controller
                 ->with('error', 'Submission rejected: Evaluation period is not active.');
         }
 
-        $user = Auth::user()->load('section.course');
+        $user->load('section.course');
         $semesterVariants = $this->getSemesterVariants((string) $settings->semester);
 
         $validated = $request->validate([
