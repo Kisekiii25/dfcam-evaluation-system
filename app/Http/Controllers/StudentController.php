@@ -16,14 +16,23 @@ use Inertia\Inertia;
 class StudentController extends Controller
 {
     /**
-     * Helper: Fetch active evaluation settings with cache fallback.
+     * Helper: Fetch active evaluation settings (only returning actually active records).
      */
     private function getActiveSettings(): ?EvaluationSetting
     {
-        return Cache::remember('active_evaluation_setting', 3600, function () {
-            return EvaluationSetting::where('is_active', true)->first()
-                ?? EvaluationSetting::find(1);
+        return Cache::remember('active_evaluation_setting', 60, function () {
+            return EvaluationSetting::where('is_active', true)->first();
         });
+    }
+
+    /**
+     * Helper: Normalize semester formats into standard array variants
+     */
+    private function getSemesterVariants(string $semester): array
+    {
+        $isFirstSem = str_contains($semester, '1');
+
+        return $isFirstSem ? ['1', '1st', '1st Semester'] : ['2', '2nd', '2nd Semester'];
     }
 
     public function index()
@@ -49,15 +58,16 @@ class StudentController extends Controller
         }
 
         $user = Auth::user();
+        $semesterVariants = $this->getSemesterVariants((string) $settings->semester);
 
         if (! $user->section_id) {
             $teachers = [];
         } else {
             $teachers = Teacher::where('is_active', true)
-                ->whereHas('teachingLoads', function ($query) use ($user, $settings) {
+                ->whereHas('teachingLoads', function ($query) use ($user, $settings, $semesterVariants) {
                     $query->where('section_id', $user->section_id)
-                        ->where('academic_year', $settings->academic_year)
-                        ->where('semester', $settings->semester);
+                        ->where('academic_year', (string) $settings->academic_year)
+                        ->whereIn('semester', $semesterVariants);
                 })
                 ->with(['teachingLoads.section.course'])
                 ->orderBy('name', 'asc')
@@ -65,8 +75,8 @@ class StudentController extends Controller
         }
 
         $evaluatedTeacherIds = EvaluationResult::where('user_id', $user->id)
-            ->where('academic_year', $settings->academic_year)
-            ->where('semester', $settings->semester)
+            ->where('academic_year', (string) $settings->academic_year)
+            ->whereIn('semester', $semesterVariants)
             ->pluck('teacher_id')
             ->unique()
             ->values()
@@ -94,11 +104,12 @@ class StudentController extends Controller
         }
 
         $user = Auth::user()->load('section.course');
+        $semesterVariants = $this->getSemesterVariants((string) $settings->semester);
 
         $isValidLoad = TeachingLoad::where('teacher_id', $teacher->id)
             ->where('section_id', $user->section_id)
-            ->where('academic_year', $settings->academic_year)
-            ->where('semester', $settings->semester)
+            ->where('academic_year', (string) $settings->academic_year)
+            ->whereIn('semester', $semesterVariants)
             ->exists();
 
         if (! $isValidLoad) {
@@ -108,8 +119,8 @@ class StudentController extends Controller
 
         $hasEvaluated = EvaluationResult::where('user_id', $user->id)
             ->where('teacher_id', $teacher->id)
-            ->where('academic_year', $settings->academic_year)
-            ->where('semester', $settings->semester)
+            ->where('academic_year', (string) $settings->academic_year)
+            ->whereIn('semester', $semesterVariants)
             ->exists();
 
         if ($hasEvaluated) {
@@ -152,17 +163,17 @@ class StudentController extends Controller
         }
 
         $user = Auth::user()->load('section.course');
+        $semesterVariants = $this->getSemesterVariants((string) $settings->semester);
 
-        // FIX: Allow both numeric ratings and string comments/text
         $validated = $request->validate([
             'ratings' => 'required|array',
-            'ratings.*' => 'required', // Removed strict 'numeric' requirement
+            'ratings.*' => 'required',
         ]);
 
         $isValidLoad = TeachingLoad::where('teacher_id', $teacher->id)
             ->where('section_id', $user->section_id)
-            ->where('academic_year', $settings->academic_year)
-            ->where('semester', $settings->semester)
+            ->where('academic_year', (string) $settings->academic_year)
+            ->whereIn('semester', $semesterVariants)
             ->exists();
 
         if (! $isValidLoad) {
@@ -172,8 +183,8 @@ class StudentController extends Controller
 
         $alreadySubmitted = EvaluationResult::where('user_id', $user->id)
             ->where('teacher_id', $teacher->id)
-            ->where('academic_year', $settings->academic_year)
-            ->where('semester', $settings->semester)
+            ->where('academic_year', (string) $settings->academic_year)
+            ->whereIn('semester', $semesterVariants)
             ->exists();
 
         if ($alreadySubmitted) {
@@ -186,7 +197,6 @@ class StudentController extends Controller
 
         $insertData = [];
         foreach ($validated['ratings'] as $questionId => $answer) {
-            // Skip null or empty values if optional text fields were submitted empty
             if ($answer === null || $answer === '') {
                 continue;
             }
@@ -195,12 +205,12 @@ class StudentController extends Controller
                 'user_id' => $user->id,
                 'teacher_id' => $teacher->id,
                 'question_id' => $questionId,
-                'answer' => (string) $answer, // Safely cast to string
+                'answer' => (string) $answer,
                 'selected_course' => $userSection?->course?->name ?? '',
                 'selected_year' => $userSection?->year_level ?? '',
                 'selected_section' => $userSection?->name ?? '',
-                'academic_year' => $settings->academic_year,
-                'semester' => $settings->semester,
+                'academic_year' => (string) $settings->academic_year,
+                'semester' => (string) $settings->semester,
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
