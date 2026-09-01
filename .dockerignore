@@ -1,9 +1,9 @@
-.git
+cat << 'EOF' > .dockerignore
+/node_modules
+/vendor
+/public/build
+/bootstrap/cache/*
+!.bootstrap/cache/.gitignore
 .env
-vendor/
-node_modules/
-public/build/
-storage/logs/*
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/views/*
+.git
+EOF

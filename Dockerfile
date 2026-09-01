@@ -32,8 +32,10 @@ COPY . .
 # Copy built frontend assets from Stage 1
 COPY --from=frontend /app/public/build ./public/build
 
-# Install PHP dependencies strictly without running any scripts
-RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs
+# Clean vendor and install fresh dependencies without scripts
+RUN rm -rf vendor bootstrap/cache/*.php
+RUN composer install --no-dev --no-scripts --ignore-platform-reqs
+RUN composer dump-autoload --optimize --no-scripts
 
 # Expose port and start Laravel server
-CMD php artisan optimize:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT
+CMD php artisan config:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT
