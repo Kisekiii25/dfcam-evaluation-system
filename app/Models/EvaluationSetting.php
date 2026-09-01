@@ -31,8 +31,8 @@ class EvaluationSetting extends Model
     protected function casts(): array
     {
         return [
-            'start_date' => 'datetime:Y-m-d\TH:i',
-            'end_date' => 'datetime:Y-m-d\TH:i',
+            'start_date' => 'datetime',
+            'end_date' => 'datetime',
             'is_active' => 'boolean',
         ];
     }
@@ -42,17 +42,20 @@ class EvaluationSetting extends Model
      */
     public function isOpen(): bool
     {
+        // 1. Must be manually toggled active
         if (! $this->is_active) {
             return false;
         }
 
-        $today = Carbon::today();
+        $now = now();
 
-        if ($this->start_date && $today->lt($this->start_date)) {
+        // 2. Start Date Check: Must be starting at start of day (00:00:00)
+        if ($this->start_date && $now->lt($this->start_date->copy()->startOfDay())) {
             return false;
         }
 
-        if ($this->end_date && $today->gt($this->end_date)) {
+        // 3. End Date Check: Remains valid through the end of the end_date (23:59:59)
+        if ($this->end_date && $now->gt($this->end_date->copy()->endOfDay())) {
             return false;
         }
 

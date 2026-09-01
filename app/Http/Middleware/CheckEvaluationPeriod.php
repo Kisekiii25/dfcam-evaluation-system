@@ -17,9 +17,9 @@ class CheckEvaluationPeriod
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Bypass check if the user is an Admin
+        // 1. Bypass check if the user is an Admin or Super Admin
         $user = Auth::user();
-        if ($user && $user->role === 'admin') {
+        if ($user && in_array($user->role, ['admin', 'super-admin'])) {
             return $next($request);
         }
 
@@ -28,11 +28,10 @@ class CheckEvaluationPeriod
             return $next($request);
         }
 
-        // 3. Fetch global setting safely
-        $settings = EvaluationSetting::where('is_active', true)->first()
-            ?? EvaluationSetting::first();
+        // 3. Fetch ONLY active settings (Remove fallback to EvaluationSetting::first())
+        $settings = EvaluationSetting::where('is_active', true)->first();
 
-        // 4. Validate whether evaluation period is active and within date window
+        // 4. If no active setting exists or the date window is closed, redirect
         if (! $settings || ! $settings->isOpen()) {
             return redirect()->route('evaluation.closed');
         }
