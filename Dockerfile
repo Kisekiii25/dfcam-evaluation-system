@@ -38,4 +38,4 @@ RUN composer install --no-dev --no-scripts
 RUN composer dump-autoload --optimize --no-scripts
 
 # Expose port and start Laravel server
-CMD php artisan config:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT
+CMD php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=$PORT
