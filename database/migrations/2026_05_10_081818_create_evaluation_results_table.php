@@ -13,13 +13,16 @@ return new class extends Migration
     {
         Schema::create('evaluation_results', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // The Student
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('teacher_id')->constrained()->onDelete('cascade');
             $table->foreignId('question_id')->constrained()->onDelete('cascade');
-            // The Answer
-            // We use 'text' so it can hold a number (1-5) OR a long comment
-            $table->text('answer');
-            // Context (Optional but helpful for reporting)
+
+            // Use integer/float for numeric ratings
+            $table->unsignedTinyInteger('rating')->nullable();
+
+            // Use text for qualitative comments
+            $table->text('comment')->nullable();
+
             $table->string('academic_year');
             $table->string('semester');
             $table->timestamps();
