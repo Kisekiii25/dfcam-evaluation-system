@@ -9,9 +9,11 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\UserController;
+use App\Models\EvaluationSetting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Cache;
 
 /*
 |--------------------------------------------------------------------------
@@ -138,6 +140,30 @@ Route::middleware(['auth', 'force_password_change'])->group(function () {
         Route::get('/evaluation/form/{teacher}', [StudentController::class, 'showForm'])->name('evaluation.form');
         Route::post('/evaluation/submit/{teacher}', [StudentController::class, 'submit'])->name('evaluation.submit');
     });
+});
+
+Route::get('/fix-evaluation-portal', function () {
+    // 1. Fetch all settings in the database
+    $allSettings = EvaluationSetting::all();
+
+    // 2. Auto-fix: Force the latest setting to be active with a valid date range
+    $setting = EvaluationSetting::first() ?? new EvaluationSetting();
+    $setting->academic_year = '2026-2027';
+    $setting->semester = '1st Semester';
+    $setting->start_date = now()->subDays(2);
+    $setting->end_date = now()->addDays(30);
+    $setting->is_active = true;
+    $setting->save();
+
+    // 3. Clear all cached settings across the application
+    Cache::flush();
+
+    return response()->json([
+        'message' => 'Portal settings auto-fixed and caches cleared successfully!',
+        'previous_database_records' => $allSettings,
+        'fixed_active_setting' => $setting,
+        'is_open_check' => $setting->isOpen(),
+    ]);
 });
 
 require __DIR__ . '/auth.php';
