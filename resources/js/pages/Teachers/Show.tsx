@@ -42,7 +42,7 @@ export default function Show({ teacher, subjects, sections }: Props) {
         teacher_id: teacher.id,
         subject_id: '',
         section_id: '',
-        academic_year: '2025-2026',
+        academic_year: '2026-2027', // Updated from 2025-2026
         semester: '1',
     });
 
@@ -207,9 +207,8 @@ export default function Show({ teacher, subjects, sections }: Props) {
                                             return (
                                                 <TableRow
                                                     key={load.id}
-                                                    className={`hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors ${
-                                                        isSelected ? 'bg-blue-50/40 dark:bg-blue-950/20' : ''
-                                                    }`}
+                                                    className={`hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors ${isSelected ? 'bg-blue-50/40 dark:bg-blue-950/20' : ''
+                                                        }`}
                                                 >
                                                     <TableCell className="text-center pl-4">
                                                         <Checkbox
@@ -228,7 +227,7 @@ export default function Show({ teacher, subjects, sections }: Props) {
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell className="text-center text-sm">
-                                                        {load.semester === '1' ? '1st Sem' : '2nd Sem'}
+                                                        {String(load.semester).includes('1') ? '1st Sem' : '2nd Sem'}
                                                     </TableCell>
                                                     <TableCell className="text-center text-sm text-zinc-500 font-mono">
                                                         {load.academic_year}

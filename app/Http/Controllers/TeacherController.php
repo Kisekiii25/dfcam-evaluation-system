@@ -102,6 +102,9 @@ class TeacherController extends Controller
             'semester' => 'required',
         ]);
 
+        // Normalize semester to plain numeric string ('1' or '2')
+        $validated['semester'] = str_contains((string) $validated['semester'], '1') ? '1' : '2';
+
         TeachingLoad::create($validated);
         $teacher = Teacher::find($validated['teacher_id']);
 
@@ -117,6 +120,9 @@ class TeacherController extends Controller
             'academic_year' => 'required|string',
             'semester' => 'required',
         ]);
+
+        // Normalize semester to plain numeric string ('1' or '2')
+        $validated['semester'] = str_contains((string) $validated['semester'], '1') ? '1' : '2';
 
         $teachingLoad->update($validated);
 
