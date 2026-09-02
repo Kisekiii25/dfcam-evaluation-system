@@ -41,19 +41,23 @@ class EvaluationSettingController extends Controller
             'semester' => ['required', 'string', 'max:50'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
-            'is_active' => ['sometimes', 'boolean'],
+            'is_active' => ['boolean'],
         ]);
 
-        // If activating this row, deactivate all other rows first
-        if (!empty($validated['is_active'])) {
-            EvaluationSetting::where('is_active', true)->update(['is_active' => false]);
+        // Force boolean conversion even if omitted from payload
+        $isActive = $request->boolean('is_active');
+
+        // If activating this setting, turn off all existing settings first
+        if ($isActive) {
+            EvaluationSetting::query()->update(['is_active' => false]);
         }
 
         $setting = EvaluationSetting::first() ?? new EvaluationSetting;
         $setting->fill($validated);
+        $setting->is_active = $isActive;
         $setting->save();
 
-        // CRITICAL: Clear cache so StudentController picks up the changes immediately
+        // Wipe cache entries immediately across the app
         Cache::forget('active_evaluation_setting');
         Cache::forget('academic_years_list');
 
