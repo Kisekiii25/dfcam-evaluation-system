@@ -16,17 +16,11 @@ use Inertia\Inertia;
 class StudentController extends Controller
 {
     /**
-     * Helper: Fetch active evaluation settings cleanly without query side-effects.
+     * Helper: Fetch active evaluation setting directly.
      */
     private function getActiveSettings(): ?EvaluationSetting
     {
-        return Cache::remember('active_evaluation_setting', 10, function () {
-            return EvaluationSetting::where(function ($query) {
-                $query->where('is_active', true)
-                    ->orWhere('is_active', 1)
-                    ->orWhere('is_active', '1');
-            })->first();
-        });
+        return EvaluationSetting::where('is_active', true)->first();
     }
 
     /**
@@ -41,13 +35,17 @@ class StudentController extends Controller
 
     public function index()
     {
-        $settings = EvaluationSetting::first();
+        $user = Auth::user();
 
-        dd([
-            'raw_setting' => $settings?->toArray(),
-            'is_active_val' => $settings?->is_active,
-            'is_open_result' => $settings?->isOpen(),
-            'current_time' => now()->toDateTimeString(),
+        // Redirect Admins away from student views
+        if ($user && in_array($user->role, ['admin', 'super-admin'])) {
+            return redirect()->route('dashboard');
+        }
+
+        $settings = $this->getActiveSettings();
+
+        return Inertia::render('Student/Dashboard', [
+            'settings' => $settings,
         ]);
     }
 
@@ -55,7 +53,6 @@ class StudentController extends Controller
     {
         $user = Auth::user();
 
-        // Prevent Admins from accessing teacher selection
         if ($user && in_array($user->role, ['admin', 'super-admin'])) {
             return redirect()->route('dashboard');
         }
