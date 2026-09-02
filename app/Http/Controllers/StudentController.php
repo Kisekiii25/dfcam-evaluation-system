@@ -24,13 +24,16 @@ class StudentController extends Controller
     }
 
     /**
-     * Helper: Normalize semester formats into standard array variants.
+     * Helper: Normalize semester formats into standard integer variants.
      */
     private function getSemesterVariants(string $semester): array
     {
-        $isFirstSem = str_contains($semester, '1');
+        // Extract numbers from strings like "1st Semester" or "Semester 1"
+        preg_match('/\d+/', $semester, $matches);
+        $semNumber = isset($matches[0]) ? (int) $matches[0] : 1;
 
-        return $isFirstSem ? ['1', '1st', '1st Semester'] : ['2', '2nd', '2nd Semester'];
+        // Return pure integers matching your PostgreSQL schema
+        return [$semNumber];
     }
 
     public function index()
