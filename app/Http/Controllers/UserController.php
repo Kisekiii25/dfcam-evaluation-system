@@ -53,9 +53,13 @@ class UserController extends Controller
             ->selectRaw('COUNT(DISTINCT teaching_loads.teacher_id)')
             ->whereColumn('teaching_loads.section_id', 'users.section_id')
             ->where('teaching_loads.academic_year', $academicYear)
-            ->whereRaw(
-                "CAST(teaching_loads.semester AS TEXT) IN (" . ($isFirstSem ? "'1', '1st', '1st Semester'" : "'2', '2nd', '2nd Semester'") . ")"
-            );
+            ->where(function ($q) use ($isFirstSem) {
+                if ($isFirstSem) {
+                    $q->whereIn('teaching_loads.semester', ['1', '1st', '1st Semester']);
+                } else {
+                    $q->whereIn('teaching_loads.semester', ['2', '2nd', '2nd Semester']);
+                }
+            });
 
         // Build base query
         $baseQuery = User::query()
@@ -73,9 +77,8 @@ class UserController extends Controller
             });
         });
 
-        // PostgreSQL-compatible subquery wrapper for status filtering
-        $query = DB::table(DB::raw("({$baseQuery->toSql()}) as users"))
-            ->mergeBindings($baseQuery->getQuery());
+        // Use Laravel's native fromSub() - cleanly binds all subquery parameters for PGSQL
+        $query = DB::table('users')->fromSub($baseQuery, 'users');
 
         // Status Filter using standard WHERE on derived columns
         if ($request->filled('evaluation_status')) {
@@ -83,17 +86,17 @@ class UserController extends Controller
 
             if ($request->evaluation_status === 'completed') {
                 $query->where('total_teachers_to_evaluate_count', '>', 0)
-                      ->whereColumn('evaluations_completed_count', '>=', 'total_teachers_to_evaluate_count');
+                    ->whereColumn('evaluations_completed_count', '>=', 'total_teachers_to_evaluate_count');
             } elseif ($request->evaluation_status === 'pending') {
                 $query->where(function ($q) {
                     $q->where('total_teachers_to_evaluate_count', '=', 0)
-                      ->orWhereColumn('evaluations_completed_count', '<', 'total_teachers_to_evaluate_count');
+                        ->orWhereColumn('evaluations_completed_count', '<', 'total_teachers_to_evaluate_count');
                 });
             }
         }
 
-        // Paginate using specific column select to avoid subquery column collision
-        $paginated = $query->paginate(10, ['id', 'name', 'email', 'role', 'evaluations_completed_count', 'total_teachers_to_evaluate_count'])->withQueryString();
+        // Paginate cleanly
+        $paginated = $query->paginate(10)->withQueryString();
 
         $userIds = collect($paginated->items())->pluck('id');
         $usersWithRelations = User::with(['section.course'])->whereIn('id', $userIds)->get()->keyBy('id');
