@@ -14,6 +14,29 @@ use Inertia\Response;
 class AdminDashboardController extends Controller
 {
     /**
+     * Helper: Extract all semester formats ('1', 1, '1st Sem', '1st Semester').
+     */
+    private function getSemesterVariants(string $semester): array
+    {
+        preg_match('/\d+/', $semester, $matches);
+        $semNumber = $matches[0] ?? '1';
+
+        return array_unique([
+            $semester,
+            $semNumber,
+            (int) $semNumber,
+            $semNumber . 'st Sem',
+            $semNumber . 'nd Sem',
+            $semNumber . 'rd Sem',
+            $semNumber . 'th Sem',
+            $semNumber . 'st Semester',
+            $semNumber . 'nd Semester',
+            $semNumber . 'rd Semester',
+            $semNumber . 'th Semester',
+        ]);
+    }
+
+    /**
      * Handle the incoming request to display admin dashboard analytics.
      */
     public function index(Request $request): Response
@@ -24,6 +47,7 @@ class AdminDashboardController extends Controller
         // 2. Determine requested filter context
         $academicYear = $request->input('academic_year', $settings?->academic_year ?? '');
         $semester = $request->input('semester', $settings?->semester ?? '');
+        $semesterVariants = $this->getSemesterVariants((string) $semester);
 
         // 3. Fetch available terms for dropdown filtering
         $availableTerms = EvaluationResult::query()
@@ -41,7 +65,7 @@ class AdminDashboardController extends Controller
             'total_sections' => Section::count(),
             'total_completed_evals' => EvaluationResult::query()
                 ->where('academic_year', $academicYear)
-                ->where('semester', $semester)
+                ->whereIn('semester', $semesterVariants)
                 ->distinct('user_id')
                 ->count('user_id'),
         ];
@@ -49,7 +73,7 @@ class AdminDashboardController extends Controller
         // 5. Get participated student IDs for selected term
         $completedUserIds = EvaluationResult::query()
             ->where('academic_year', $academicYear)
-            ->where('semester', $semester)
+            ->whereIn('semester', $semesterVariants)
             ->pluck('user_id')
             ->unique()
             ->flip();
