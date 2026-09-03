@@ -23,15 +23,17 @@ class StudentController extends Controller
     }
 
     /**
-     * Helper: Normalize semester formats into standard string variants ('1', '2', etc.)
+     * Helper: Normalize semester formats into standard integer values.
      */
     private function getSemesterVariants(string $semester): array
     {
+        // Extract numbers from strings like "1st Semester" or "Semester 2"
         preg_match('/\d+/', $semester, $matches);
-        $semNumber = isset($matches[0]) ? (string) $matches[0] : '1';
 
-        // Return array of possible matching values in database
-        return array_unique([$semNumber, (int) $semNumber, $semester]);
+        // Return an integer matching your PostgreSQL schema
+        $semNumber = isset($matches[0]) ? (int) $matches[0] : 1;
+
+        return [$semNumber];
     }
 
     public function index()
