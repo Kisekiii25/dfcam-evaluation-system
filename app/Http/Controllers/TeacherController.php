@@ -31,13 +31,32 @@ class TeacherController extends Controller
         });
 
         $academicYear = (string) ($settings->academic_year ?? '');
-        $semester = (string) ($settings->semester ?? '');
+        $rawSemester = (string) ($settings->semester ?? '');
+
+        // Safely parse number out of semester setting (e.g. "1st Semester" -> "1")
+        preg_match('/\d+/', $rawSemester, $matches);
+        $semNumber = $matches[0] ?? '1';
+
+        // Include all possible stored variants so no ratings get excluded
+        $semesterVariants = array_unique([
+            $rawSemester,
+            $semNumber,
+            (int) $semNumber,
+            $semNumber . 'st Sem',
+            $semNumber . 'nd Sem',
+            $semNumber . 'rd Sem',
+            $semNumber . 'th Sem',
+            $semNumber . 'st Semester',
+            $semNumber . 'nd Semester',
+            $semNumber . 'rd Semester',
+            $semNumber . 'th Semester',
+        ]);
 
         // Subquery to calculate average rating per teacher in 1 query (with PostgreSQL type cast)
         $avgSubquery = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
             ->whereColumn('evaluation_results.teacher_id', 'teachers.id')
             ->where('evaluation_results.academic_year', $academicYear)
-            ->where('evaluation_results.semester', $semester)
+            ->whereIn('evaluation_results.semester', $semesterVariants)
             ->where('questions.type', 'rating')
             ->selectRaw('ROUND(AVG(CAST(evaluation_results.answer AS INTEGER)), 2)');
 
@@ -217,7 +236,6 @@ class TeacherController extends Controller
 
         return back()->with('success', 'Selected teacher records deleted successfully.');
     }
-
     /**
      * Display evaluation metrics, category breakdowns, and qualitative feedback for a teacher.
      */
@@ -228,13 +246,32 @@ class TeacherController extends Controller
         });
 
         $academicYear = (string) ($settings->academic_year ?? '');
-        $semester = (string) ($settings->semester ?? '');
+        $rawSemester = (string) ($settings->semester ?? '');
 
-        // 1. Single query to fetch ALL question averages for this teacher (with PostgreSQL type cast)
+        // Safely parse number out of semester setting (e.g. "1st Semester" -> "1")
+        preg_match('/\d+/', $rawSemester, $matches);
+        $semNumber = $matches[0] ?? '1';
+
+        // Include all possible stored variants so no submissions get filtered out
+        $semesterVariants = array_unique([
+            $rawSemester,
+            $semNumber,
+            (int) $semNumber,
+            $semNumber . 'st Sem',
+            $semNumber . 'nd Sem',
+            $semNumber . 'rd Sem',
+            $semNumber . 'th Sem',
+            $semNumber . 'st Semester',
+            $semNumber . 'nd Semester',
+            $semNumber . 'rd Semester',
+            $semNumber . 'th Semester',
+        ]);
+
+        // 1. Single query to fetch ALL question averages for this teacher
         $questionAverages = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
             ->where('evaluation_results.teacher_id', $teacher->id)
             ->where('evaluation_results.academic_year', $academicYear)
-            ->where('evaluation_results.semester', $semester)
+            ->whereIn('evaluation_results.semester', $semesterVariants)
             ->where('questions.type', 'rating')
             ->groupBy('evaluation_results.question_id', 'questions.category_id')
             ->select(
@@ -243,8 +280,6 @@ class TeacherController extends Controller
                 DB::raw('AVG(CAST(evaluation_results.answer AS INTEGER)) as avg_score')
             )
             ->get();
-
-        // ... rest of analytics method remains unchanged
 
         $questionAvgMap = $questionAverages->pluck('avg_score', 'question_id');
         $overallAverage = $questionAverages->avg('avg_score');
@@ -284,7 +319,7 @@ class TeacherController extends Controller
         $allComments = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
             ->where('evaluation_results.teacher_id', $teacher->id)
             ->where('evaluation_results.academic_year', $academicYear)
-            ->where('evaluation_results.semester', $semester)
+            ->whereIn('evaluation_results.semester', $semesterVariants)
             ->where('questions.type', 'comment')
             ->select('questions.category_id', 'evaluation_results.answer as text', 'evaluation_results.created_at')
             ->orderBy('evaluation_results.created_at', 'desc')
