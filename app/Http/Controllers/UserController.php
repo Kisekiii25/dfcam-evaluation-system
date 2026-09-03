@@ -40,9 +40,11 @@ class UserController extends Controller
             ->where('evaluation_results.academic_year', $academicYear)
             ->where(function ($q) use ($isFirstSem) {
                 if ($isFirstSem) {
-                    $q->whereIn('evaluation_results.semester', ['1', '1st', '1st Semester']);
+                    $q->whereIn('evaluation_results.semester', [1, '1'])
+                        ->orWhereRaw("CAST(evaluation_results.semester AS TEXT) IN ('1st', '1st Semester')");
                 } else {
-                    $q->whereIn('evaluation_results.semester', ['2', '2nd', '2nd Semester']);
+                    $q->whereIn('evaluation_results.semester', [2, '2'])
+                        ->orWhereRaw("CAST(evaluation_results.semester AS TEXT) IN ('2nd', '2nd Semester')");
                 }
             });
 
@@ -55,9 +57,11 @@ class UserController extends Controller
             ->where('teaching_loads.academic_year', $academicYear)
             ->where(function ($q) use ($isFirstSem) {
                 if ($isFirstSem) {
-                    $q->whereIn('teaching_loads.semester', ['1', '1st', '1st Semester']);
+                    $q->whereIn('teaching_loads.semester', [1, '1'])
+                        ->orWhereRaw("CAST(teaching_loads.semester AS TEXT) IN ('1st', '1st Semester')");
                 } else {
-                    $q->whereIn('teaching_loads.semester', ['2', '2nd', '2nd Semester']);
+                    $q->whereIn('teaching_loads.semester', [2, '2'])
+                        ->orWhereRaw("CAST(teaching_loads.semester AS TEXT) IN ('2nd', '2nd Semester')");
                 }
             });
 
