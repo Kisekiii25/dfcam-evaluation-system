@@ -23,23 +23,21 @@ class StudentController extends Controller
     }
 
     /**
-     * Helper: Normalize semester formats into standard integer variants.
+     * Helper: Normalize semester formats into standard string variants ('1', '2', etc.)
      */
     private function getSemesterVariants(string $semester): array
     {
-        // Extract numbers from strings like "1st Semester" or "Semester 1"
         preg_match('/\d+/', $semester, $matches);
-        $semNumber = isset($matches[0]) ? (int) $matches[0] : 1;
+        $semNumber = isset($matches[0]) ? (string) $matches[0] : '1';
 
-        // Return pure integers matching your PostgreSQL schema
-        return [$semNumber];
+        // Return array of possible matching values in database
+        return array_unique([$semNumber, (int) $semNumber, $semester]);
     }
 
     public function index()
     {
         $user = Auth::user();
 
-        // Redirect Admins away from student views
         if ($user && in_array($user->role, ['admin', 'super-admin'])) {
             return redirect()->route('dashboard');
         }
@@ -142,7 +140,8 @@ class StudentController extends Controller
             ->exists();
 
         if ($hasEvaluated) {
-            return back()->with('message', 'You have already completed the evaluation for this instructor.');
+            return redirect()->route('evaluation.select')
+                ->with('error', 'You have already completed the evaluation for this instructor.');
         }
 
         $categories = Category::with(['questions' => function ($query) {
@@ -212,12 +211,16 @@ class StudentController extends Controller
             ->exists();
 
         if ($alreadySubmitted) {
-            return redirect()->back()
+            return redirect()->route('evaluation.select')
                 ->with('error', 'You have already evaluated this teacher.');
         }
 
         $userSection = $user->section;
         $now = now();
+
+        // Extract clean semester number (e.g., '1' or '2') for consistent storage
+        preg_match('/\d+/', (string) $settings->semester, $semMatch);
+        $cleanSemester = $semMatch[0] ?? (string) $settings->semester;
 
         $insertData = [];
         foreach ($validated['ratings'] as $questionId => $answer) {
@@ -234,7 +237,7 @@ class StudentController extends Controller
                 'selected_year' => $userSection?->year_level ?? '',
                 'selected_section' => $userSection?->name ?? '',
                 'academic_year' => (string) $settings->academic_year,
-                'semester' => (string) $settings->semester,
+                'semester' => $cleanSemester, // Store normalized semester '1' or '2'
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
