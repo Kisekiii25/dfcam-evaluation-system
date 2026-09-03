@@ -31,24 +31,7 @@ class UserController extends Controller
         $shortSemester = $isFirstSem ? '1st' : '2nd';
         $selectedSemesterUi = str_contains($rawSemester, 'Summer') ? 'Summer' : $shortSemester;
 
-        // Send ONLY values matching the column data type
-        $semesterValue = $isFirstSem ? '1st' : '2nd';
-
-        // Initialize $query BEFORE subqueries are executed
-        $query = User::query()
-            ->select('users.*')
-            ->with(['section.course']);
-
-        // Search Filter
-        $query->when($request->filled('search'), function ($q) use ($request) {
-            $search = $request->input('search');
-            $q->where(function ($sub) use ($search) {
-                $sub->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
-        });
-
-        // 1. Count completed evaluations (active teachers only)
+        // Subquery 1: Count completed evaluations (active teachers only)
         $completedSubquery = DB::table('evaluation_results')
             ->join('teachers', 'teachers.id', '=', 'evaluation_results.teacher_id')
             ->where('teachers.is_active', true)
@@ -63,10 +46,7 @@ class UserController extends Controller
                 }
             });
 
-        $query->selectSub($completedSubquery, 'evaluations_completed_count');
-
-        // 2. Count assigned teaching loads (active teachers only)
-        // CAST teaching_loads.semester to TEXT in SQL so PostgreSQL allows string matching safely
+        // Subquery 2: Count assigned teaching loads (active teachers only)
         $assignedSubquery = DB::table('teaching_loads')
             ->join('teachers', 'teachers.id', '=', 'teaching_loads.teacher_id')
             ->where('teachers.is_active', true)
@@ -77,41 +57,68 @@ class UserController extends Controller
                 "CAST(teaching_loads.semester AS TEXT) IN (" . ($isFirstSem ? "'1', '1st', '1st Semester'" : "'2', '2nd', '2nd Semester'") . ")"
             );
 
-        $query->selectSub($assignedSubquery, 'total_teachers_to_evaluate_count');
+        // Build base query
+        $baseQuery = User::query()
+            ->select('users.*')
+            ->selectSub($completedSubquery, 'evaluations_completed_count')
+            ->selectSub($assignedSubquery, 'total_teachers_to_evaluate_count')
+            ->whereNull('users.deleted_at');
 
-        // Status Filter
+        // Apply Search Filter on base query
+        $baseQuery->when($request->filled('search'), function ($q) use ($request) {
+            $search = $request->input('search');
+            $q->where(function ($sub) use ($search) {
+                $sub->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        });
+
+        // PostgreSQL-compatible subquery wrapper for status filtering
+        $query = DB::table(DB::raw("({$baseQuery->toSql()}) as users"))
+            ->mergeBindings($baseQuery->getQuery());
+
+        // Status Filter using standard WHERE on derived columns
         if ($request->filled('evaluation_status')) {
             $query->where('role', 'student');
 
             if ($request->evaluation_status === 'completed') {
-                $query->havingRaw('total_teachers_to_evaluate_count > 0 AND evaluations_completed_count >= total_teachers_to_evaluate_count');
+                $query->where('total_teachers_to_evaluate_count', '>', 0)
+                      ->whereColumn('evaluations_completed_count', '>=', 'total_teachers_to_evaluate_count');
             } elseif ($request->evaluation_status === 'pending') {
-                $query->havingRaw('total_teachers_to_evaluate_count = 0 OR evaluations_completed_count < total_teachers_to_evaluate_count');
+                $query->where(function ($q) {
+                    $q->where('total_teachers_to_evaluate_count', '=', 0)
+                      ->orWhereColumn('evaluations_completed_count', '<', 'total_teachers_to_evaluate_count');
+                });
             }
         }
 
-        $users = $query->paginate(10)
-            ->withQueryString()
-            ->through(function ($user) {
-                $formattedSection = null;
+        // Paginate using specific column select to avoid subquery column collision
+        $paginated = $query->paginate(10, ['id', 'name', 'email', 'role', 'evaluations_completed_count', 'total_teachers_to_evaluate_count'])->withQueryString();
 
-                if ($user->section) {
-                    $courseName = $user->section->course?->name ?? 'Course';
-                    $yearLevel = $user->section->year_level;
-                    $sectionNumber = $user->section->name;
-                    $formattedSection = "{$courseName} {$yearLevel} - {$sectionNumber}";
-                }
+        $userIds = collect($paginated->items())->pluck('id');
+        $usersWithRelations = User::with(['section.course'])->whereIn('id', $userIds)->get()->keyBy('id');
 
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'section_name' => $formattedSection,
-                    'evaluations_completed_count' => (int) ($user->evaluations_completed_count ?? 0),
-                    'total_teachers_to_evaluate_count' => (int) ($user->total_teachers_to_evaluate_count ?? 0),
-                ];
-            });
+        $users = $paginated->through(function ($user) use ($usersWithRelations) {
+            $fullUser = $usersWithRelations->get($user->id);
+            $formattedSection = null;
+
+            if ($fullUser && $fullUser->section) {
+                $courseName = $fullUser->section->course?->name ?? 'Course';
+                $yearLevel = $fullUser->section->year_level;
+                $sectionNumber = $fullUser->section->name;
+                $formattedSection = "{$courseName} {$yearLevel} - {$sectionNumber}";
+            }
+
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'section_name' => $formattedSection,
+                'evaluations_completed_count' => (int) ($user->evaluations_completed_count ?? 0),
+                'total_teachers_to_evaluate_count' => (int) ($user->total_teachers_to_evaluate_count ?? 0),
+            ];
+        });
 
         // Cache Academic Years dropdown list
         $academicYears = Cache::remember('academic_years_list', 86400, function () {
