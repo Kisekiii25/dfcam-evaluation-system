@@ -19,7 +19,10 @@ class StudentController extends Controller
      */
     private function getActiveSettings(): ?EvaluationSetting
     {
-        return EvaluationSetting::where('is_active', true)->first();
+        return EvaluationSetting::where('is_active', true)
+            ->where('start_date', '<=', now())
+            ->where('end_date', '>=', now())
+            ->first();
     }
 
     /**

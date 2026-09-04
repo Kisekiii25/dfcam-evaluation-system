@@ -26,6 +26,14 @@ class EvaluationSettingController extends Controller
                 'is_active' => false,
             ]);
 
+        // Check if the setting is active BUT the end_date has already passed
+        if ($settings->is_active && $settings->end_date && now()->greaterThan($settings->end_date)) {
+            // Automatically mark as inactive or pass an 'is_open' boolean to the UI
+            $settings->is_open = false;
+        } else {
+            $settings->is_open = $settings->is_active;
+        }
+
         return Inertia::render('Admin/Settings/Evaluation', [
             'settings' => $settings,
         ]);
