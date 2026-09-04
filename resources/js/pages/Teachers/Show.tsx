@@ -460,3 +460,4 @@ export default function Show({ teacher, subjects, sections }: Props) {
         </AppLayout>
     );
 }
+    

@@ -91,10 +91,19 @@ export default function SelectTeacher({ teachers = [], settings, evaluatedTeache
 
                                 // Extract subject names from teaching_loads
                                 const assignedSubjects = teacher.teaching_loads
-                                    ?.map((load) => {
+                                    ?.map((load: any) => {
+                                        // Debug raw data in browser console (press F12 -> Console to inspect)
+                                        console.log('Teaching load subject:', load.subject);
+
                                         if (load.subject && typeof load.subject === 'object') {
-                                            return `${load.subject.code} - ${load.subject.title}`;
+                                            const code = load.subject.code || '';
+                                            const title = load.subject.title || load.subject.name || '';
+
+                                            if (code && title) return `${code} - ${title}`;
+                                            if (title) return title;
+                                            if (code) return code;
                                         }
+
                                         return null;
                                     })
                                     .filter(Boolean);
@@ -102,6 +111,7 @@ export default function SelectTeacher({ teachers = [], settings, evaluatedTeache
                                 const subjectDisplay = assignedSubjects && assignedSubjects.length > 0
                                     ? assignedSubjects.join(', ')
                                     : 'No Subject Assigned';
+
                                 return (
                                     <div key={teacher.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-blue-950/10 transition-colors">
                                         <div className="space-y-0.5 min-w-0">
