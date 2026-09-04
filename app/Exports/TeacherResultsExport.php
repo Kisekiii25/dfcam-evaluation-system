@@ -93,7 +93,7 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
             $teacher->is_active ? 'Active' : 'Inactive',
         ];
 
-        // 1. Category Averages (PostgreSQL safe)
+        // 1. Category Averages (PostgreSQL numeric safe)
         foreach ($this->ratingCategories as $category) {
             $catAvgQuery = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
                 ->where('questions.category_id', $category->id)
@@ -103,12 +103,12 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
 
             $this->applySemesterFilter($catAvgQuery, $isFirstSem);
 
-            $catAvg = $catAvgQuery->avg('evaluation_results.answer');
+            $catAvg = $catAvgQuery->avg(DB::raw('CAST(evaluation_results.answer AS NUMERIC)'));
 
-            $row[] = $catAvg ? number_format((float) $catAvg, 2).' / 5' : 'N/A';
+            $row[] = $catAvg !== null ? number_format((float) $catAvg, 2).' / 5' : 'N/A';
         }
 
-        // 2. Overall Average (PostgreSQL safe)
+        // 2. Overall Average (PostgreSQL numeric safe)
         $overallAvgQuery = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
             ->where('evaluation_results.teacher_id', $teacher->id)
             ->where('evaluation_results.academic_year', $academicYear)
@@ -116,12 +116,12 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
 
         $this->applySemesterFilter($overallAvgQuery, $isFirstSem);
 
-        $overallAvg = $overallAvgQuery->avg('evaluation_results.answer');
+        $overallAvg = $overallAvgQuery->avg(DB::raw('CAST(evaluation_results.answer AS NUMERIC)'));
 
-        $ratingInfo = $this->getRatingBadge($overallAvg ? (float) $overallAvg : null);
+        $ratingInfo = $this->getRatingBadge($overallAvg !== null ? (float) $overallAvg : null);
         $row[] = $ratingInfo['label'];
 
-        // 3. Comments (PostgreSQL safe)
+        // 3. Comments
         foreach ($this->commentQuestions as $question) {
             $answersQuery = EvaluationResult::where('question_id', $question->id)
                 ->where('teacher_id', $teacher->id)
@@ -291,9 +291,9 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
 
                         $this->applySemesterFilter($overallAvgQuery, $this->isFirstSem);
 
-                        $overallAvg = $overallAvgQuery->avg('evaluation_results.answer');
+                        $overallAvg = $overallAvgQuery->avg(DB::raw('CAST(evaluation_results.answer AS NUMERIC)'));
 
-                        $badge = $this->getRatingBadge($overallAvg ? (float) $overallAvg : null);
+                        $badge = $this->getRatingBadge($overallAvg !== null ? (float) $overallAvg : null);
                         $cellCoordinate = "{$overallColLetter}{$currentRow}";
 
                         $sheet->getStyle($cellCoordinate)->getFill()
