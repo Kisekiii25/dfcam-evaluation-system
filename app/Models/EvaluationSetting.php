@@ -49,13 +49,13 @@ class EvaluationSetting extends Model
 
         $now = now();
 
-        // 2. Start Date Check: Must be starting at start of day (00:00:00)
-        if ($this->start_date && $now->lt($this->start_date->copy()->startOfDay())) {
+        // 2. Start Date Check: Must be past or equal to exact start date/time
+        if ($this->start_date && $now->lt($this->start_date)) {
             return false;
         }
 
-        // 3. End Date Check: Remains valid through the end of the end_date (23:59:59)
-        if ($this->end_date && $now->gt($this->end_date->copy()->endOfDay())) {
+        // 3. End Date Check: Must be before or equal to exact end date/time
+        if ($this->end_date && $now->gt($this->end_date)) {
             return false;
         }
 

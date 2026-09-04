@@ -19,10 +19,8 @@ class StudentController extends Controller
      */
     private function getActiveSettings(): ?EvaluationSetting
     {
-        return EvaluationSetting::where('is_active', true)
-            ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
-            ->first();
+        // Fetch the currently active setting record regardless of whether start_date/end_date are in range
+        return EvaluationSetting::where('is_active', true)->first();
     }
 
     /**
@@ -64,13 +62,9 @@ class StudentController extends Controller
 
         $settings = $this->getActiveSettings();
 
-        if (! $settings) {
-            return Inertia::render('Student/SelectTeacher', [
-                'teachers' => [],
-                'settings' => null,
-                'evaluatedTeacherIds' => [],
-                'error' => 'No active evaluation period configured.',
-            ]);
+        // If no setting exists OR current time is outside window, fallback to closed route
+        if (! $settings || ! $settings->isOpen()) {
+            return redirect()->route('evaluation.closed');
         }
 
         $semesterVariants = $this->getSemesterVariants((string) $settings->semester);
@@ -126,8 +120,7 @@ class StudentController extends Controller
         $settings = $this->getActiveSettings();
 
         if (! $settings || ! $settings->isOpen()) {
-            return redirect()->route('evaluation.select')
-                ->with('error', 'Evaluation portal is currently closed.');
+            return redirect()->route('evaluation.closed');
         }
 
         $user->load('section.course');
@@ -192,8 +185,7 @@ class StudentController extends Controller
         $settings = $this->getActiveSettings();
 
         if (! $settings || ! $settings->isOpen()) {
-            return redirect()->route('evaluation.select')
-                ->with('error', 'Submission rejected: Evaluation period is not active.');
+            return redirect()->route('evaluation.closed');
         }
 
         $user->load('section.course');
