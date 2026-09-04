@@ -91,7 +91,13 @@ export default function SelectTeacher({ teachers = [], settings, evaluatedTeache
 
                                 // Extract subject names from teaching_loads
                                 const assignedSubjects = teacher.teaching_loads
-                                    ?.map((load) => load.subject?.name || load.subject?.title || load.subject?.code)
+                                    ?.map((load) => {
+                                        // Ensure load.subject is an object, not an integer ID
+                                        if (load.subject && typeof load.subject === 'object') {
+                                            return load.subject.name || load.subject.title || load.subject.code || load.subject.subject_code;
+                                        }
+                                        return null;
+                                    })
                                     .filter(Boolean);
 
                                 const subjectDisplay = assignedSubjects && assignedSubjects.length > 0

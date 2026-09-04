@@ -81,7 +81,7 @@ class StudentController extends Controller
                         ->where('academic_year', (string) $settings->academic_year)
                         ->whereIn('semester', $semesterVariants);
                 })
-                // UPDATE THIS LINE BELOW TO INCLUDE .subject
+                // Eager-load 'subject' here:
                 ->with(['teachingLoads.subject', 'teachingLoads.section.course'])
                 ->orderBy('name', 'asc')
                 ->get();
@@ -100,7 +100,7 @@ class StudentController extends Controller
             'settings' => $settings,
             'evaluatedTeacherIds' => $evaluatedTeacherIds,
         ]);
-    }   
+    }
 
     public function showForm(Request $request, Teacher $teacher)
     {
