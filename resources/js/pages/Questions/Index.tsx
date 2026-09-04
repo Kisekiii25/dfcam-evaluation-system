@@ -250,6 +250,7 @@ export default function Index({ questions, categories, settings }: any) {
     // --- ADDED STATES FOR DIALOGS ---
     const [deletingQuestion, setDeletingQuestion] = useState<Question | null>(null);
     const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState<boolean>(false);
+    const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
 
     const academicYears = generateAcademicYears();
 
@@ -273,12 +274,37 @@ export default function Index({ questions, categories, settings }: any) {
     const categoryForm = useForm({ name: '' });
     const questionForm = useForm({ question_text: '', category_id: '', type: 'rating' });
     const editQuestionForm = useForm({ question_text: '', category_id: '', type: 'rating' });
+
+    // --- SCHEDULE HELPER & FORM STATE ---
+    const formatForInput = (dateStr: string | null | undefined): string => {
+        if (!dateStr) return '';
+        if (typeof dateStr === 'string' && dateStr.length === 16 && dateStr.includes('T')) {
+            return dateStr;
+        }
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
     const settingsForm = useForm({
         academic_year: settings?.academic_year || academicYears[2],
         semester: settings?.semester || '1st Semester',
-        start_date: settings?.start_date ? settings.start_date.slice(0, 16) : '',
-        end_date: settings?.end_date ? settings.end_date.slice(0, 16) : '',
+        start_date: formatForInput(settings?.start_date),
+        end_date: formatForInput(settings?.end_date),
     });
+
+    // Sync form state when backend updates settings props after save
+    useEffect(() => {
+        if (settings) {
+            settingsForm.setData({
+                academic_year: settings.academic_year || academicYears[2],
+                semester: settings.semester || '1st Semester',
+                start_date: formatForInput(settings.start_date),
+                end_date: formatForInput(settings.end_date),
+            });
+        }
+    }, [settings]);
 
     const handleUpdateCategory = (id: number, newName: string) => {
         router.put(route('categories.update', id), { name: newName }, { preserveScroll: true });
@@ -314,9 +340,8 @@ export default function Index({ questions, categories, settings }: any) {
         });
     };
 
-    // --- UPDATED: Removed window.confirm() (AlertDialog handles confirmation now) ---
     const handleDeleteQuestion = (id: number) => {
-        if (!id) return; // Prevents Ziggy from crashing if id is missing
+        if (!id) return;
 
         router.delete(route('questions.destroy', { question: id }), {
             preserveScroll: true,
@@ -324,7 +349,6 @@ export default function Index({ questions, categories, settings }: any) {
         });
     };
 
-    // --- UPDATED: Removed window.confirm() (AlertDialog handles confirmation now) ---
     const handleBulkDeleteQuestions = () => {
         if (!selectedQuestions.length) return;
         router.post(
@@ -389,7 +413,6 @@ export default function Index({ questions, categories, settings }: any) {
             router.patch(route('categories.reorder'), { ids: newOrder.map((c: any) => c.id) }, { preserveScroll: true });
         }
     };
-    const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
