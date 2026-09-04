@@ -34,32 +34,49 @@ class UsersExport implements FromCollection, ShouldAutoSize, WithCustomStartCell
 
     public function collection(): Collection
     {
-        $semesterVariants = array_unique([
-            $this->semester,
-            str_contains($this->semester, '1') ? '1' : '2',
-            str_contains($this->semester, '1') ? '1st Semester' : '2nd Semester',
-        ]);
+        $isFirstSem = str_contains((string) $this->semester, '1');
+
+        // Subquery 1: Completed evaluations (PostgreSQL Safe)
+        $completedSubquery = DB::table('evaluation_results')
+            ->join('teachers', 'teachers.id', '=', 'evaluation_results.teacher_id')
+            ->where('teachers.is_active', true)
+            ->selectRaw('COUNT(DISTINCT evaluation_results.teacher_id)')
+            ->whereColumn('evaluation_results.user_id', 'users.id')
+            ->where('evaluation_results.academic_year', $this->academicYear)
+            ->where(function ($q) use ($isFirstSem) {
+                if ($isFirstSem) {
+                    $q->whereIn('evaluation_results.semester', [1, '1'])
+                      ->orWhereRaw("CAST(evaluation_results.semester AS TEXT) IN ('1st', '1st Semester')");
+                } else {
+                    $q->whereIn('evaluation_results.semester', [2, '2'])
+                      ->orWhereRaw("CAST(evaluation_results.semester AS TEXT) IN ('2nd', '2nd Semester')");
+                }
+            });
+
+        // Subquery 2: Assigned teaching loads (PostgreSQL Safe)
+        $assignedSubquery = DB::table('teaching_loads')
+            ->join('teachers', 'teachers.id', '=', 'teaching_loads.teacher_id')
+            ->where('teachers.is_active', true)
+            ->selectRaw('COUNT(DISTINCT teaching_loads.teacher_id)')
+            ->whereColumn('teaching_loads.section_id', 'users.section_id')
+            ->where('teaching_loads.academic_year', $this->academicYear)
+            ->where(function ($q) use ($isFirstSem) {
+                if ($isFirstSem) {
+                    $q->whereIn('teaching_loads.semester', [1, '1'])
+                      ->orWhereRaw("CAST(teaching_loads.semester AS TEXT) IN ('1st', '1st Semester')");
+                } else {
+                    $q->whereIn('teaching_loads.semester', [2, '2'])
+                      ->orWhereRaw("CAST(teaching_loads.semester AS TEXT) IN ('2nd', '2nd Semester')");
+                }
+            });
 
         return User::query()
             ->select('users.*')
             ->where('role', 'student')
+            ->whereNull('users.deleted_at')
             ->with(['section.course'])
-            ->selectSub(
-                DB::table('evaluation_results')
-                    ->selectRaw('COUNT(DISTINCT teacher_id)')
-                    ->whereColumn('evaluation_results.user_id', 'users.id')
-                    ->where('academic_year', $this->academicYear)
-                    ->whereIn('semester', $semesterVariants),
-                'evaluations_completed_count'
-            )
-            ->selectSub(
-                DB::table('teaching_loads')
-                    ->selectRaw('COUNT(DISTINCT teacher_id)')
-                    ->whereColumn('teaching_loads.section_id', 'users.section_id')
-                    ->where('academic_year', $this->academicYear)
-                    ->whereIn('semester', $semesterVariants),
-                'total_teachers_to_evaluate_count'
-            )
+            ->selectSub($completedSubquery, 'evaluations_completed_count')
+            ->selectSub($assignedSubquery, 'total_teachers_to_evaluate_count')
             ->get();
     }
 
@@ -140,19 +157,19 @@ class UsersExport implements FromCollection, ShouldAutoSize, WithCustomStartCell
                     ? $this->semester
                     : "{$this->semester} Semester";
 
-                // 1. School Name (Row 2, Centered across C2:G2)
+                // 1. School Name (Row 2, Centered across B2:G2)
                 $sheet->mergeCells('B2:G2');
                 $sheet->setCellValue('B2', 'DR. FILEMON C. AGUILAR MEMORIAL COLLEGE OF LAS PIÑAS');
                 $sheet->getStyle('B2')->getFont()->setBold(true)->setSize(13);
                 $sheet->getStyle('B2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                // 2. Main Title (Row 3, Centered across C3:G3)
+                // 2. Main Title (Row 3, Centered across B3:G3)
                 $sheet->mergeCells('B3:G3');
                 $sheet->setCellValue('B3', 'STUDENT EVALUATION PROGRESS REPORT');
                 $sheet->getStyle('B3')->getFont()->setBold(true)->setSize(11);
                 $sheet->getStyle('B3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                // 3. Academic Term (Row 4, Centered across C4:G4)
+                // 3. Academic Term (Row 4, Centered across B4:G4)
                 $sheet->mergeCells('B4:G4');
                 $sheet->setCellValue('B4', "{$semText}, A.Y. {$this->academicYear}");
                 $sheet->getStyle('B4')->getFont()->setSize(10)->setItalic(true);

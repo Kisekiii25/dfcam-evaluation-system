@@ -8,6 +8,7 @@ use App\Models\EvaluationSetting;
 use App\Models\Question;
 use App\Models\Teacher;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithCustomStartCell;
@@ -28,6 +29,8 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
 
     protected string $semester;
 
+    protected bool $isFirstSem;
+
     protected Collection $ratingCategories;
 
     protected Collection $commentQuestions;
@@ -37,6 +40,7 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
         $activeSetting = EvaluationSetting::find(1) ?? EvaluationSetting::where('is_active', true)->first();
         $this->academicYear = $academicYear ?? $activeSetting?->academic_year ?? '2025-2026';
         $this->semester = $semester ?? $activeSetting?->semester ?? '1st';
+        $this->isFirstSem = str_contains((string) $this->semester, '1');
 
         $this->ratingCategories = Category::whereHas('questions', function ($q) {
             $q->where('type', 'rating');
@@ -81,7 +85,7 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
     public function map($teacher): array
     {
         $academicYear = $this->academicYear;
-        $semester = $this->semester;
+        $isFirstSem = $this->isFirstSem;
 
         $row = [
             $teacher->employee_id,
@@ -89,36 +93,45 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
             $teacher->is_active ? 'Active' : 'Inactive',
         ];
 
+        // 1. Category Averages (PostgreSQL safe)
         foreach ($this->ratingCategories as $category) {
-            $catAvg = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
+            $catAvgQuery = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
                 ->where('questions.category_id', $category->id)
                 ->where('evaluation_results.teacher_id', $teacher->id)
                 ->where('evaluation_results.academic_year', $academicYear)
-                ->where('evaluation_results.semester', $semester)
-                ->where('questions.type', 'rating')
-                ->avg('evaluation_results.answer');
+                ->where('questions.type', 'rating');
 
-            $row[] = $catAvg ? number_format($catAvg, 2).' / 5' : 'N/A';
+            $this->applySemesterFilter($catAvgQuery, $isFirstSem);
+
+            $catAvg = $catAvgQuery->avg('evaluation_results.answer');
+
+            $row[] = $catAvg ? number_format((float) $catAvg, 2).' / 5' : 'N/A';
         }
 
-        $overallAvg = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
+        // 2. Overall Average (PostgreSQL safe)
+        $overallAvgQuery = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
             ->where('evaluation_results.teacher_id', $teacher->id)
             ->where('evaluation_results.academic_year', $academicYear)
-            ->where('evaluation_results.semester', $semester)
-            ->where('questions.type', 'rating')
-            ->avg('evaluation_results.answer');
+            ->where('questions.type', 'rating');
+
+        $this->applySemesterFilter($overallAvgQuery, $isFirstSem);
+
+        $overallAvg = $overallAvgQuery->avg('evaluation_results.answer');
 
         $ratingInfo = $this->getRatingBadge($overallAvg ? (float) $overallAvg : null);
         $row[] = $ratingInfo['label'];
 
+        // 3. Comments (PostgreSQL safe)
         foreach ($this->commentQuestions as $question) {
-            $answers = EvaluationResult::where('question_id', $question->id)
+            $answersQuery = EvaluationResult::where('question_id', $question->id)
                 ->where('teacher_id', $teacher->id)
                 ->where('academic_year', $academicYear)
-                ->where('semester', $semester)
                 ->whereNotNull('answer')
-                ->where('answer', '!=', '')
-                ->pluck('answer')
+                ->where('answer', '!=', '');
+
+            $this->applySemesterFilter($answersQuery, $isFirstSem);
+
+            $answers = $answersQuery->pluck('answer')
                 ->map(fn ($item) => trim($item))
                 ->implode("\n• ");
 
@@ -126,6 +139,22 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
         }
 
         return $row;
+    }
+
+    /**
+     * Helper to apply PostgreSQL-safe semester filtering
+     */
+    private function applySemesterFilter($query, bool $isFirstSem): void
+    {
+        $query->where(function ($q) use ($isFirstSem) {
+            if ($isFirstSem) {
+                $q->whereIn('evaluation_results.semester', [1, '1'])
+                  ->orWhereRaw("CAST(evaluation_results.semester AS TEXT) IN ('1st', '1st Semester')");
+            } else {
+                $q->whereIn('evaluation_results.semester', [2, '2'])
+                  ->orWhereRaw("CAST(evaluation_results.semester AS TEXT) IN ('2nd', '2nd Semester')");
+            }
+        });
     }
 
     private function getRatingBadge(?float $score): array
@@ -244,9 +273,8 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
                     $sheet->getStyle("A7:A{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("C7:C{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                    // FIX 1: Cap Data Rows Height to prevent huge vertical empty space
                     for ($row = 7; $row <= $highestRow; $row++) {
-                        $sheet->getRowDimension($row)->setRowHeight(45); // Fixed row height fits ~3 lines nicely
+                        $sheet->getRowDimension($row)->setRowHeight(45);
                     }
 
                     // Highlight Ratings
@@ -256,12 +284,14 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
                     foreach ($teachers as $index => $teacher) {
                         $currentRow = 7 + $index;
 
-                        $overallAvg = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
+                        $overallAvgQuery = EvaluationResult::join('questions', 'questions.id', '=', 'evaluation_results.question_id')
                             ->where('evaluation_results.teacher_id', $teacher->id)
                             ->where('evaluation_results.academic_year', $this->academicYear)
-                            ->where('evaluation_results.semester', $this->semester)
-                            ->where('questions.type', 'rating')
-                            ->avg('evaluation_results.answer');
+                            ->where('questions.type', 'rating');
+
+                        $this->applySemesterFilter($overallAvgQuery, $this->isFirstSem);
+
+                        $overallAvg = $overallAvgQuery->avg('evaluation_results.answer');
 
                         $badge = $this->getRatingBadge($overallAvg ? (float) $overallAvg : null);
                         $cellCoordinate = "{$overallColLetter}{$currentRow}";
@@ -279,7 +309,7 @@ class TeacherResultsExport implements FromCollection, ShouldAutoSize, WithCustom
                     }
                 }
 
-                // FIX 2: Fixed column width on comments without breaking text flow
+                // Fixed column width on comments without breaking text flow
                 $firstCommentColIndex = 3 + count($this->ratingCategories) + 2;
                 for ($i = $firstCommentColIndex; $i <= $totalColumns; $i++) {
                     $colLetter = Coordinate::stringFromColumnIndex($i);
