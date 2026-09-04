@@ -92,18 +92,16 @@ export default function SelectTeacher({ teachers = [], settings, evaluatedTeache
                                 // Extract subject names from teaching_loads
                                 const assignedSubjects = teacher.teaching_loads
                                     ?.map((load) => {
-                                        // Check if load.subject is a fully loaded object
                                         if (load.subject && typeof load.subject === 'object') {
-                                            return load.subject.title || load.subject.code;
+                                            return `${load.subject.code} - ${load.subject.title}`;
                                         }
                                         return null;
                                     })
-                                    .filter((subject): subject is string => Boolean(subject));
+                                    .filter(Boolean);
 
                                 const subjectDisplay = assignedSubjects && assignedSubjects.length > 0
                                     ? assignedSubjects.join(', ')
                                     : 'No Subject Assigned';
-
                                 return (
                                     <div key={teacher.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-blue-950/10 transition-colors">
                                         <div className="space-y-0.5 min-w-0">

@@ -52,9 +52,7 @@ class StudentController extends Controller
     }
 
     public function selectTeacher()
-
     {
-
         $user = Auth::user();
 
         if ($user && in_array($user->role, ['admin', 'super-admin'])) {
@@ -83,8 +81,13 @@ class StudentController extends Controller
                         ->where('academic_year', (string) $settings->academic_year)
                         ->whereIn('semester', $semesterVariants);
                 })
-                // Eager-load 'subject' here:
-                ->with(['teachingLoads.subject', 'teachingLoads.section.course'])
+                // Constrain teachingLoads AND eager load 'subject'
+                ->with(['teachingLoads' => function ($query) use ($user, $settings, $semesterVariants) {
+                    $query->where('section_id', $user->section_id)
+                        ->where('academic_year', (string) $settings->academic_year)
+                        ->whereIn('semester', $semesterVariants)
+                        ->with('subject');
+                }])
                 ->orderBy('name', 'asc')
                 ->get();
         }
