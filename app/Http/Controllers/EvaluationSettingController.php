@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
+use Carbon\Carbon;
 
 class EvaluationSettingController extends Controller
 {
@@ -34,6 +35,14 @@ class EvaluationSettingController extends Controller
             $settings->is_open = $settings->is_active;
         }
 
+        // Format start_date and end_date for HTML datetime-local inputs
+        if ($settings->start_date) {
+            $settings->start_date = Carbon::parse($settings->start_date)->format('Y-m-d\TH:i');
+        }
+        if ($settings->end_date) {
+            $settings->end_date = Carbon::parse($settings->end_date)->format('Y-m-d\TH:i');
+        }
+
         return Inertia::render('Admin/Settings/Evaluation', [
             'settings' => $settings,
         ]);
@@ -51,6 +60,10 @@ class EvaluationSettingController extends Controller
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'is_active' => ['boolean'],
         ]);
+
+        // Parse dates directly into system timezone to prevent offset jumps
+        $validated['start_date'] = Carbon::parse($request->input('start_date'));
+        $validated['end_date'] = Carbon::parse($request->input('end_date'));
 
         // Force boolean conversion even if omitted from payload
         $isActive = $request->boolean('is_active');

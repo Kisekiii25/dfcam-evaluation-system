@@ -36,34 +36,26 @@ class QuestionController extends Controller
         ]);
     }
 
-    /**
-     * Update the Global Evaluation Settings (Schedule & Period).
-     *
-     * IMPORTANT NOTE FOR FUTURE UPDATES:
-     * Whenever settings are modified, Cache::forget() MUST be called. Otherwise, student and teacher
-     * controllers will continue serving stale cached settings for up to 1 hour.
-     */
     public function updateSettings(Request $request)
     {
         Cache::forget('active_evaluation_setting');
 
         $validated = $request->validate([
             'academic_year' => 'required|string|max:50',
-            'semester' => 'required|string|max:50',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
+            'semester'      => 'required|string|max:50',
+            'start_date'    => 'required|date',
+            'end_date'      => 'required|date|after:start_date',
         ]);
 
-        // PRESERVE EXACT TIME: Parse directly without startOfDay() or endOfDay()
-        $validated['start_date'] = Carbon::parse($validated['start_date']);
-        $validated['end_date'] = Carbon::parse($validated['end_date']);
+        // Parse explicitly without forcing endOfDay()
+        $validated['start_date'] = Carbon::parse($request->input('start_date'))->timezone('Asia/Manila');
+        $validated['end_date']   = Carbon::parse($request->input('end_date'))->timezone('Asia/Manila');
 
         EvaluationSetting::updateOrCreate(
             ['id' => 1],
             $validated
         );
 
-        // Invalidate settings cache across the application
         Cache::forget('active_evaluation_setting');
 
         return back()->with('success', 'Evaluation settings and active term updated successfully.');
