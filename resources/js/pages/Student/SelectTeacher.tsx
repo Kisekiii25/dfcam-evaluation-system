@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, CircleAlert, GraduationCap, ArrowRight, Calendar, ArrowLeft, X } from 'lucide-react';
+import { CheckCircle2, CircleAlert, GraduationCap, ArrowRight, Calendar, ArrowLeft, X, BookOpen } from 'lucide-react';
+
+interface Subject {
+    id: number;
+    code?: string;
+    name?: string;
+    title?: string;
+}
 
 interface TeachingLoad {
     id: number;
+    subject?: Subject; // Adjust field name if your relation is named differently
     section?: {
         name: string;
         year_level: string;
@@ -31,11 +39,9 @@ interface SelectTeacherProps {
 }
 
 export default function SelectTeacher({ teachers = [], settings, evaluatedTeacherIds = [] }: SelectTeacherProps) {
-    // Read session flash variables passed from our updated controller redirect path
     const { flash } = usePage().props as any;
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-    // Watch for new incoming evaluation success messages to toggle modal visibility
     useEffect(() => {
         if (flash?.success) {
             setShowSuccessModal(true);
@@ -83,13 +89,27 @@ export default function SelectTeacher({ teachers = [], settings, evaluatedTeache
                             teachers.map((teacher) => {
                                 const hasEvaluated = evaluatedTeacherIds.includes(teacher.id);
 
+                                // Extract subject names from teaching_loads
+                                const assignedSubjects = teacher.teaching_loads
+                                    ?.map((load) => load.subject?.name || load.subject?.title || load.subject?.code)
+                                    .filter(Boolean);
+
+                                const subjectDisplay = assignedSubjects && assignedSubjects.length > 0
+                                    ? assignedSubjects.join(', ')
+                                    : 'No Subject Assigned';
+
                                 return (
                                     <div key={teacher.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-blue-950/10 transition-colors">
                                         <div className="space-y-0.5 min-w-0">
                                             <h3 className={`font-semibold text-sm tracking-wide truncate ${hasEvaluated ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
                                                 {teacher.name}
                                             </h3>
-                                            <p className="text-[10px] text-slate-500 font-mono tracking-wider">ID: {teacher.employee_id}</p>
+
+                                            {/* Display Assigned Subject(s) here instead of Employee ID */}
+                                            <p className="text-[11px] text-blue-400/80 font-medium flex items-center gap-1.5 truncate">
+                                                <BookOpen className="w-3 h-3 text-blue-400/60 shrink-0" />
+                                                <span className="truncate">{subjectDisplay}</span>
+                                            </p>
                                         </div>
 
                                         <div className="flex items-center w-full sm:w-auto mt-1 sm:mt-0">
@@ -133,12 +153,11 @@ export default function SelectTeacher({ teachers = [], settings, evaluatedTeache
                 </div>
             </div>
 
-            {/* Premium UX Popup Success Modal */}
+            {/* Success Modal */}
             {showSuccessModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
                     <div className="bg-[#111a36] border border-slate-700/60 max-w-md w-full rounded-2xl p-6 shadow-2xl relative text-center space-y-4 transform transition-all scale-100">
 
-                        {/* Close Trigger Button */}
                         <button
                             onClick={() => setShowSuccessModal(false)}
                             className="absolute top-4 right-4 text-slate-400 hover:text-white transition cursor-pointer"
