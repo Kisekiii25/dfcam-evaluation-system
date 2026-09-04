@@ -19,11 +19,15 @@ class QuestionController extends Controller
      */
     public function index()
     {
-        // NOTE FOR FUTURE UPDATES:
-        // Cache active settings to avoid redundant queries while rendering the admin setup builder.
         $settings = Cache::remember('active_evaluation_setting', 3600, function () {
             return EvaluationSetting::find(1) ?? EvaluationSetting::where('is_active', true)->first();
         });
+
+        // Format dates into standard ISO datetime-local format (YYYY-MM-DDTHH:MM) for HTML inputs
+        if ($settings) {
+            $settings->start_date = $settings->start_date ? \Carbon\Carbon::parse($settings->start_date)->format('Y-m-d\TH:i') : null;
+            $settings->end_date = $settings->end_date ? \Carbon\Carbon::parse($settings->end_date)->format('Y-m-d\TH:i') : null;
+        }
 
         return Inertia::render('Questions/Index', [
             'questions' => Question::with('category')->orderBy('order', 'asc')->get(),
@@ -41,7 +45,6 @@ class QuestionController extends Controller
      */
     public function updateSettings(Request $request)
     {
-
         Cache::forget('active_evaluation_setting');
 
         $validated = $request->validate([
@@ -51,8 +54,9 @@ class QuestionController extends Controller
             'end_date' => 'required|date|after:start_date',
         ]);
 
-        $validated['start_date'] = Carbon::parse($validated['start_date'])->startOfDay();
-        $validated['end_date'] = Carbon::parse($validated['end_date'])->endOfDay();
+        // PRESERVE EXACT TIME: Parse directly without startOfDay() or endOfDay()
+        $validated['start_date'] = Carbon::parse($validated['start_date']);
+        $validated['end_date'] = Carbon::parse($validated['end_date']);
 
         EvaluationSetting::updateOrCreate(
             ['id' => 1],
