@@ -52,7 +52,9 @@ class StudentController extends Controller
     }
 
     public function selectTeacher()
+
     {
+
         $user = Auth::user();
 
         if ($user && in_array($user->role, ['admin', 'super-admin'])) {
